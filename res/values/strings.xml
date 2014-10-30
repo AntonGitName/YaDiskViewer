@@ -2,7 +2,22 @@
 <resources>
 
     <string name="app_name">YaDiskViewer</string>
-    <string name="hello_world">Hello world!</string>
+    <string name="example_no_files">No files</string>
     <string name="action_settings">Settings</string>
-
+    
+    <string name="auth_title">Auth</string>
+    <string name="auth_message">Start browser to authorize?</string>
+    <string name="auth_positive_button">OK</string>
+    <string name="auth_negative_button">Exit</string>
+    
+    <string name="loading_file_title">Loading file</string>
+    <string name="loading_file_cancel_button">Cancel</string>
+    <string name="loading_file_chooser_title">Open file</string>
+    
+    <string name="actionbar_view_current_folder">View pictures in current folder</string>
+    <string name="actionbar_change_to_explorer_mode">View all files and folders in current folder</string>
+    
+	<string name="imageview_description">Image Thumbnail</string>
+	
+    
 </resources>
