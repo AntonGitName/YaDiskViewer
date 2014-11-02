@@ -39,6 +39,8 @@ public class ImageViewFragment extends Fragment {
 	public void onActivityCreated(Bundle savedInstanceState) {
 		super.onActivityCreated(savedInstanceState);
 		
+		setHasOptionsMenu(true);
+		
 		registerForContextMenu(getView());
 		
 		Log.d(TAG, "Creating adapter");
@@ -49,7 +51,7 @@ public class ImageViewFragment extends Fragment {
 		
 		ArrayList<ListItem> list = args.getParcelableArrayList(DiskViewerFragment.IMAGES_LIST_KEY);
 		Credentials credentials = args.getParcelable(DiskViewerFragment.CREDENTIALS);
-		viewPager.setAdapter(new ImagePagerAdapter(getFragmentManager(), list, credentials));
+		viewPager.setAdapter(new ImagePagerAdapter(list, credentials, this));
 	}
 	
 	@Override

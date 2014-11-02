@@ -70,8 +70,6 @@ public class DiskViewerFragment extends ListFragment implements LoaderManager.Lo
 		setListAdapter(adapter);
 		setListShown(false);
 		getLoaderManager().initLoader(0, null, this);
-		
-		getAllImages();
 	}
 
 	private void setDefaultEmptyText() {
@@ -211,6 +209,7 @@ public class DiskViewerFragment extends ListFragment implements LoaderManager.Lo
 			}
 		} else {
 			adapter.setData(data);
+			getAllImages();
 		}
 	}
 

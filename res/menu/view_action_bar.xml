@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<menu xmlns:android="http://schemas.android.com/apk/res/android" >
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto" >
 
     <item
         android:id="@+id/view_current_folder_all"
-        android:enabled="true"
         android:icon="@drawable/folder_icon"
-        android:showAsAction="ifRoom"
-        android:visible="true"
-        android:title="@string/actionbar_change_to_explorer_mode"/>
+        android:title="@string/actionbar_change_to_explorer_mode"
+        app:showAsAction="always"/>
 
 </menu>

@@ -19,5 +19,7 @@
     
 	<string name="imageview_description">Image Thumbnail</string>
 	
+	<string name="no_images_in_dir">No images to show in current folder</string>
+	
     
 </resources>

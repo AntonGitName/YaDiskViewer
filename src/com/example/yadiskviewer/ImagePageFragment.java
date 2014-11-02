@@ -179,7 +179,8 @@ public class ImagePageFragment extends Fragment implements ProgressListener {
 	@Override
 	public void updateProgress(long loaded, long total) {
 		m_progressBar.setMax((int) total);
-		m_progressBar.setProgress((int) loaded);		
+		m_progressBar.setProgress((int) loaded);	
+		m_progressBar.invalidate();
 	}
 
 	@Override

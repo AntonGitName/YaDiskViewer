@@ -5,7 +5,7 @@
     <item
         android:id="@+id/view_current_folder_images"
         android:icon="@drawable/view_icon"
-        app:showAsAction="always"
-        android:title="@string/actionbar_view_current_folder"/>
+        android:title="@string/actionbar_view_current_folder"
+        app:showAsAction="always"/>
 
 </menu>
