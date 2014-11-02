@@ -21,22 +21,22 @@ import com.yandex.disk.client.exceptions.WebdavException;
 
 public class DiskViewerLoader extends AsyncTaskLoader<List<ListItem>> {
 
-	private static String TAG = "DiskViewerLoader";
-
-	private Credentials credentials;
-	private String dir;
-	private Handler handler;
-
-	private List<ListItem> fileItemList;
-	private Exception exception;
-	private boolean hasCancelled;
+	private static Collator collator = Collator.getInstance();
 
 	private static final int ITEMS_PER_REQUEST = 20;
-
-	private static Collator collator = Collator.getInstance();
+	private static String TAG = "DiskViewerLoader";
 	static {
 		collator.setDecomposition(Collator.CANONICAL_DECOMPOSITION);
 	}
+
+	private Credentials credentials;
+	private String dir;
+	private Exception exception;
+	
+	private List<ListItem> fileItemList;
+	private Handler handler;
+	private boolean hasCancelled;
+
 	private final Comparator<ListItem> FILE_ITEM_COMPARATOR = new Comparator<ListItem>() {
 		@Override
 		public int compare(ListItem f1, ListItem f2) {
@@ -57,15 +57,8 @@ public class DiskViewerLoader extends AsyncTaskLoader<List<ListItem>> {
 		this.dir = dir;
 	}
 
-	@Override
-	protected void onStartLoading() {
-		forceLoad();
-	}
-
-	@Override
-	protected void onReset() {
-		super.onReset();
-		hasCancelled = true;
+	public Exception getException() {
+		return exception;
 	}
 
 	@Override
@@ -79,6 +72,17 @@ public class DiskViewerLoader extends AsyncTaskLoader<List<ListItem>> {
 
 				// First item in PROPFIND is the current collection name
 				boolean ignoreFirstItem = true;
+
+				@Override
+				public boolean handleItem(ListItem item) {
+					if (ignoreFirstItem) {
+						ignoreFirstItem = false;
+						return false;
+					} else {
+						fileItemList.add(item);
+						return true;
+					}
+				}
 
 				@Override
 				public boolean hasCancelled() {
@@ -95,17 +99,6 @@ public class DiskViewerLoader extends AsyncTaskLoader<List<ListItem>> {
 							deliverResult(new ArrayList<ListItem>(fileItemList));
 						}
 					});
-				}
-
-				@Override
-				public boolean handleItem(ListItem item) {
-					if (ignoreFirstItem) {
-						ignoreFirstItem = false;
-						return false;
-					} else {
-						fileItemList.add(item);
-						return true;
-					}
 				}
 			});
 			Collections.sort(fileItemList, FILE_ITEM_COMPARATOR);
@@ -124,7 +117,14 @@ public class DiskViewerLoader extends AsyncTaskLoader<List<ListItem>> {
 		return fileItemList;
 	}
 
-	public Exception getException() {
-		return exception;
+	@Override
+	protected void onReset() {
+		super.onReset();
+		hasCancelled = true;
+	}
+
+	@Override
+	protected void onStartLoading() {
+		forceLoad();
 	}
 }

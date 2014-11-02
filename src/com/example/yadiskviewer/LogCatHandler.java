@@ -20,9 +20,51 @@ import android.util.Log;
 
 public class LogCatHandler extends Handler {
 
+	private static String anonymous;
+
 	private static final String TAG = "LogCatHandler";
 
-	private static String anonymous;
+	private static final Formatter THE_FORMATTER = new Formatter() {
+
+		@Override
+		public String format(LogRecord r) {
+			Throwable thrown = r.getThrown();
+			if (thrown != null) {
+				StringWriter sw = new StringWriter();
+				PrintWriter pw = new PrintWriter(sw);
+				sw.write(r.getMessage());
+				sw.write("\n");
+				thrown.printStackTrace(pw);
+				pw.flush();
+				return sw.toString();
+			} else {
+				return r.getMessage();
+			}
+		}
+
+	};
+
+	/**
+	 * Converts a {@link java.util.logging.Logger} logging level into an Android
+	 * one.
+	 * 
+	 * @param level
+	 *            The {@link java.util.logging.Logger} logging level.
+	 * 
+	 * @return The resulting Android logging level.
+	 */
+	private static int getAndroidLevel(Level level) {
+		int value = level.intValue();
+		if (value >= 1000) { // SEVERE
+			return Log.ERROR;
+		} else if (value >= 900) { // WARNING
+			return Log.WARN;
+		} else if (value >= 800) { // INFO
+			return Log.INFO;
+		} else {
+			return Log.DEBUG;
+		}
+	}
 
 	/**
 	 * File called logging.properties must be in the same package as
@@ -47,26 +89,6 @@ public class LogCatHandler extends Handler {
 			Log.e(TAG, "Error read configuration", e);
 		}
 	}
-
-	private static final Formatter THE_FORMATTER = new Formatter() {
-
-		@Override
-		public String format(LogRecord r) {
-			Throwable thrown = r.getThrown();
-			if (thrown != null) {
-				StringWriter sw = new StringWriter();
-				PrintWriter pw = new PrintWriter(sw);
-				sw.write(r.getMessage());
-				sw.write("\n");
-				thrown.printStackTrace(pw);
-				pw.flush();
-				return sw.toString();
-			} else {
-				return r.getMessage();
-			}
-		}
-
-	};
 
 	public LogCatHandler() {
 		setFormatter(THE_FORMATTER);
@@ -111,28 +133,6 @@ public class LogCatHandler extends Handler {
 			Log.println(level, tag, message);
 		} catch (RuntimeException e) {
 			Log.e(TAG, "Error logging message.", e);
-		}
-	}
-
-	/**
-	 * Converts a {@link java.util.logging.Logger} logging level into an Android
-	 * one.
-	 * 
-	 * @param level
-	 *            The {@link java.util.logging.Logger} logging level.
-	 * 
-	 * @return The resulting Android logging level.
-	 */
-	private static int getAndroidLevel(Level level) {
-		int value = level.intValue();
-		if (value >= 1000) { // SEVERE
-			return Log.ERROR;
-		} else if (value >= 900) { // WARNING
-			return Log.WARN;
-		} else if (value >= 800) { // INFO
-			return Log.INFO;
-		} else {
-			return Log.DEBUG;
 		}
 	}
 

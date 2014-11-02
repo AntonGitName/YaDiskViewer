@@ -27,19 +27,90 @@ import com.yandex.disk.client.ListItem;
 
 public class DiskViewerFragment extends ListFragment implements LoaderManager.LoaderCallbacks<List<ListItem>> {
 
-	private static final String TAG = "DiskViewerFragment";
-
-	private static final String CURRENT_DIR_KEY = "yadiskviewer.current.dir";
+	public static final String CREDENTIALS = "yadiskviewer.credentials";
 	public static final String IMAGES_LIST_KEY = "yadiskviewer.images.list";
 
-	public static final String CREDENTIALS = "yadiskviewer.credentials";
-
 	private static final String ROOT = "/";
-
+	private static final String CURRENT_DIR_KEY = "yadiskviewer.current.dir";
+	private static final String TAG = "DiskViewerFragment";
+	
+	private DiskViewerAdapter adapter;
 	private Credentials credentials;
 	private String currentDir;
+	private boolean imagesCounted = false;
+	private ArrayList<ListItem> imagesInCurrentDir = new ArrayList<>();
+	
+	public static class DiskViewerAdapter extends ArrayAdapter<ListItem> {
+		private final LayoutInflater inflater;
 
-	private DiskViewerAdapter adapter;
+		public DiskViewerAdapter(Context context) {
+			super(context, android.R.layout.simple_list_item_2);
+			inflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+		}
+
+		@Override
+		public View getView(int position, View convertView, ViewGroup parent) {
+			View view;
+
+			if (convertView == null) {
+				view = inflater.inflate(android.R.layout.simple_list_item_2, parent, false);
+			} else {
+				view = convertView;
+			}
+
+			ListItem item = getItem(position);
+			((TextView) view.findViewById(android.R.id.text1)).setText(item.getDisplayName());
+			((TextView) view.findViewById(android.R.id.text2)).setText(item.isCollection() ? "" : ""
+					+ item.getContentLength());
+
+			return view;
+		}
+
+		public void setData(List<ListItem> data) {
+			clear();
+			if (data != null) {
+				addAll(data);
+			}
+		}
+	}
+
+	protected void changeDir(String dir) {
+		Bundle args = new Bundle();
+		args.putString(CURRENT_DIR_KEY, dir);
+
+		DiskViewerFragment fragment = new DiskViewerFragment();
+		fragment.setArguments(args);
+
+		getFragmentManager().beginTransaction().replace(R.id.container, fragment, MainActivity.DISK_FRAGMENT_TAG)
+				.addToBackStack(null).commit();
+	}
+	private void changeViewMode() {
+		Log.d(TAG, "Change view mode to images");
+		Bundle args = new Bundle();
+		args.putParcelableArrayList(IMAGES_LIST_KEY, imagesInCurrentDir);
+		args.putParcelable(CREDENTIALS, credentials);
+
+		ImageViewFragment fragment = new ImageViewFragment();
+		fragment.setArguments(args);
+
+		getFragmentManager().beginTransaction().replace(R.id.container, fragment, MainActivity.IMAGE_FRAGMENT_TAG)
+				.addToBackStack(null).commit();
+	}
+
+	private void getAllImages() {
+		if (!imagesCounted) {
+			ListAdapter adapter = getListAdapter();
+			int length = adapter.getCount();
+			for (int i = 0; i < length; ++i) {
+				ListItem item = (ListItem) getListAdapter().getItem(i);
+				if (!item.isCollection() && item.getMediaType().equals("image")) {
+					imagesInCurrentDir.add(item);
+				}
+			}
+			Log.d(TAG, "Number of images: " + imagesInCurrentDir.size());
+			imagesCounted = true;
+		}
+	}
 
 	@Override
 	public void onActivityCreated(Bundle savedInstanceState) {
@@ -72,8 +143,16 @@ public class DiskViewerFragment extends ListFragment implements LoaderManager.Lo
 		getLoaderManager().initLoader(0, null, this);
 	}
 
-	private void setDefaultEmptyText() {
-		setEmptyText(getString(R.string.example_no_files));
+	@Override
+	public Loader<List<ListItem>> onCreateLoader(int i, Bundle bundle) {
+		return new DiskViewerLoader(getActivity(), credentials, currentDir);
+	}
+
+	@Override
+	public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+		super.onCreateOptionsMenu(menu, inflater);
+
+		inflater.inflate(R.menu.disk_action_bar, menu);
 	}
 
 	@Override
@@ -90,111 +169,9 @@ public class DiskViewerFragment extends ListFragment implements LoaderManager.Lo
 		}
 	}
 
-	private final ArrayList<ListItem> imagesInCurrentDir = new ArrayList<>();
-	private boolean imagesCounted = false;
-
-	private void getAllImages() {
-		if (!imagesCounted) {
-			ListAdapter adapter = getListAdapter();
-			int length = adapter.getCount();
-			for (int i = 0; i < length; ++i) {
-				ListItem item = (ListItem) getListAdapter().getItem(i);
-				if (!item.isCollection() && item.getMediaType().equals("image")) {
-					imagesInCurrentDir.add(item);
-				}
-			}
-			Log.d(TAG, "Number of images: " + imagesInCurrentDir.size());
-			imagesCounted = true;
-		}
-	}
-
-	private void changeViewMode() {
-		Log.d(TAG, "Change view mode to images");
-		Bundle args = new Bundle();
-		args.putParcelableArrayList(IMAGES_LIST_KEY, imagesInCurrentDir);
-		args.putParcelable(CREDENTIALS, credentials);
-
-		ImageViewFragment fragment = new ImageViewFragment();
-		fragment.setArguments(args);
-
-		getFragmentManager().beginTransaction().replace(R.id.container, fragment, MainActivity.IMAGE_FRAGMENT_TAG)
-				.addToBackStack(null).commit();
-	}
-
-	protected void changeDir(String dir) {
-		Bundle args = new Bundle();
-		args.putString(CURRENT_DIR_KEY, dir);
-
-		DiskViewerFragment fragment = new DiskViewerFragment();
-		fragment.setArguments(args);
-
-		getFragmentManager().beginTransaction().replace(R.id.container, fragment, MainActivity.DISK_FRAGMENT_TAG)
-				.addToBackStack(null).commit();
-	}
-
 	@Override
-	public boolean onOptionsItemSelected(MenuItem item) {
-		switch (item.getItemId()) {
-		case android.R.id.home:
-			getFragmentManager().popBackStack();
-			break;
-		case R.id.view_current_folder_images:
-			changeViewMode();
-			break;
-		default:
-			return super.onOptionsItemSelected(item);
-		}
-		return true;
-	}
-
-	@Override
-	public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
-		super.onCreateOptionsMenu(menu, inflater);
-
-		inflater.inflate(R.menu.disk_action_bar, menu);
-	}
-
-	public void restartLoader() {
-		getLoaderManager().restartLoader(0, null, this);
-	}
-
-	public static class DiskViewerAdapter extends ArrayAdapter<ListItem> {
-		private final LayoutInflater inflater;
-
-		public DiskViewerAdapter(Context context) {
-			super(context, android.R.layout.simple_list_item_2);
-			inflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-		}
-
-		public void setData(List<ListItem> data) {
-			clear();
-			if (data != null) {
-				addAll(data);
-			}
-		}
-
-		@Override
-		public View getView(int position, View convertView, ViewGroup parent) {
-			View view;
-
-			if (convertView == null) {
-				view = inflater.inflate(android.R.layout.simple_list_item_2, parent, false);
-			} else {
-				view = convertView;
-			}
-
-			ListItem item = getItem(position);
-			((TextView) view.findViewById(android.R.id.text1)).setText(item.getDisplayName());
-			((TextView) view.findViewById(android.R.id.text2)).setText(item.isCollection() ? "" : ""
-					+ item.getContentLength());
-
-			return view;
-		}
-	}
-
-	@Override
-	public Loader<List<ListItem>> onCreateLoader(int i, Bundle bundle) {
-		return new DiskViewerLoader(getActivity(), credentials, currentDir);
+	public void onLoaderReset(Loader<List<ListItem>> loader) {
+		adapter.setData(null);
 	}
 
 	@Override
@@ -218,7 +195,25 @@ public class DiskViewerFragment extends ListFragment implements LoaderManager.Lo
 	}
 
 	@Override
-	public void onLoaderReset(Loader<List<ListItem>> loader) {
-		adapter.setData(null);
+	public boolean onOptionsItemSelected(MenuItem item) {
+		switch (item.getItemId()) {
+		case android.R.id.home:
+			getFragmentManager().popBackStack();
+			break;
+		case R.id.view_current_folder_images:
+			changeViewMode();
+			break;
+		default:
+			return super.onOptionsItemSelected(item);
+		}
+		return true;
+	}
+
+	public void restartLoader() {
+		getLoaderManager().restartLoader(0, null, this);
+	}
+
+	private void setDefaultEmptyText() {
+		setEmptyText(getString(R.string.example_no_files));
 	}
 }

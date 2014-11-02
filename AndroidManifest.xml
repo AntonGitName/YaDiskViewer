@@ -16,7 +16,7 @@
         android:name=".Application"
         android:allowBackup="true"
         android:hardwareAccelerated="true"
-        android:icon="@drawable/yadiskviewer_logo"
+        android:icon="@drawable/ic_yadiskviewer_logo"
         android:label="@string/app_name"
         android:theme="@style/AppTheme" >
         <activity

@@ -16,6 +16,8 @@
     
     <string name="actionbar_view_current_folder">View pictures in current folder</string>
     <string name="actionbar_change_to_explorer_mode">View all files and folders in current folder</string>
+    <string name="actionbar_start_slideshow">Start slideshow</string>
+    <string name="actionbar_pause_slideshow">Pause slideshow</string>
     
 	<string name="imageview_description">Image Thumbnail</string>
 	

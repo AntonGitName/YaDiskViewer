@@ -31,101 +31,80 @@ import android.widget.Toast;
 
 public class MainActivity extends ActionBarActivity {
 
-	@Override
-	public void onCreateContextMenu(ContextMenu menu, View v, ContextMenuInfo menuInfo) {
-		super.onCreateContextMenu(menu, v, menuInfo);
-	}
-
-	@Override
-	public boolean onOptionsItemSelected(MenuItem item) {
-		return super.onOptionsItemSelected(item);
-	}
-
-	private static String TAG = "MainActivity";
-	public static String DISK_FRAGMENT_TAG = "diskviewer";
-	public static String IMAGE_FRAGMENT_TAG = "imageviewer";
-
-	private static final int GET_ACCOUNT_CREDS_INTENT = 100;
-
 	public static final String CLIENT_ID = "46a3ee473e0a4934a716217438cbe4db";
-	public static final String CLIENT_SECRET = "d6e3446d3c9d4847a48f362b34adf531";
-
 	public static final String ACCOUNT_TYPE = "com.yandex";
+	private static final String ACTION_ADD_ACCOUNT = "com.yandex.intent.ADD_ACCOUNT";
 	public static final String AUTH_URL = "https://oauth.yandex.ru/authorize?response_type=token&client_id="
 			+ CLIENT_ID;
-	private static final String ACTION_ADD_ACCOUNT = "com.yandex.intent.ADD_ACCOUNT";
+
+	public static final String CLIENT_SECRET = "d6e3446d3c9d4847a48f362b34adf531";
+	public static String DISK_FRAGMENT_TAG = "diskviewer";
+
+	private static final int GET_ACCOUNT_CREDS_INTENT = 100;
+	public static String IMAGE_FRAGMENT_TAG = "imageviewer";
 	private static final String KEY_CLIENT_SECRET = "clientSecret";
+	private static String TAG = "MainActivity";
 
-	public static String USERNAME = "yadiskviewer.username";
 	public static String TOKEN = "yadiskviewer.token";
+	public static String USERNAME = "yadiskviewer.username";
+	
+	public static class AuthDialogFragment extends DialogFragment {
 
-	@Override
-	protected void onCreate(Bundle savedInstanceState) {
-		super.onCreate(savedInstanceState);
-		setContentView(R.layout.activity_main);
-
-		if (getIntent() != null && getIntent().getData() != null) {
-			onLogin();
+		public AuthDialogFragment() {
+			super();
 		}
 
-		SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
-		String token = preferences.getString(TOKEN, null);
-		if (token == null) {
-			getToken();
-			return;
-		}
-
-		if (savedInstanceState == null) {
-			startFragment();
-		}
-	}
-
-	private void startFragment() {
-		getSupportFragmentManager().beginTransaction()
-				.replace(R.id.container, new DiskViewerFragment(), DISK_FRAGMENT_TAG).commit();
-	}
-
-	private void onLogin() {
-		Uri data = getIntent().getData();
-		setIntent(null);
-		Pattern pattern = Pattern.compile("access_token=(.*?)(&|$)");
-		Matcher matcher = pattern.matcher(data.toString());
-		if (matcher.find()) {
-			final String token = matcher.group(1);
-			if (!TextUtils.isEmpty(token)) {
-				Log.d(TAG, "onLogin: token: " + token);
-				saveToken(token);
-			} else {
-				Log.w(TAG, "onRegistrationSuccess: empty token");
-			}
-		} else {
-			Log.w(TAG, "onRegistrationSuccess: token not found in return url");
+		@Override
+		public Dialog onCreateDialog(Bundle savedInstanceState) {
+			return new AlertDialog.Builder(getActivity()).setTitle(R.string.auth_title)
+					.setMessage(R.string.auth_message)
+					.setPositiveButton(R.string.auth_positive_button, new DialogInterface.OnClickListener() {
+						@Override
+						public void onClick(DialogInterface dialog, int which) {
+							dialog.dismiss();
+							startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(AUTH_URL)));
+						}
+					}).setNegativeButton(R.string.auth_negative_button, new DialogInterface.OnClickListener() {
+						@Override
+						public void onClick(DialogInterface dialog, int which) {
+							dialog.dismiss();
+							getActivity().finish();
+						}
+					}).create();
 		}
 	}
 
-	private void saveToken(String token) {
-		SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(this).edit();
-		editor.putString(USERNAME, "");
-		editor.putString(TOKEN, token);
-		editor.commit();
-	}
+	private class GetAuthTokenCallback implements AccountManagerCallback<Bundle> {
+		public void run(AccountManagerFuture<Bundle> result) {
+			try {
+				Bundle bundle = result.getResult();
+				Log.d(TAG, "bundle: " + bundle);
 
-	public void reloadContent() {
-		DiskViewerFragment fragment = (DiskViewerFragment) getSupportFragmentManager().findFragmentByTag(
-				DISK_FRAGMENT_TAG);
-		fragment.restartLoader();
-	}
+				String message = (String) bundle.get(AccountManager.KEY_ERROR_MESSAGE);
+				if (message != null) {
+					Toast.makeText(MainActivity.this, message, Toast.LENGTH_LONG).show();
+				}
 
-	@Override
-	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-		if (requestCode == GET_ACCOUNT_CREDS_INTENT) {
-			if (resultCode == RESULT_OK) {
-				Bundle bundle = data.getExtras();
-				String name = bundle.getString(AccountManager.KEY_ACCOUNT_NAME);
-				String type = bundle.getString(AccountManager.KEY_ACCOUNT_TYPE);
-				Log.d(TAG, "GET_ACCOUNT_CREDS_INTENT: name=" + name + " type=" + type);
-				Account account = new Account(name, type);
-				getAuthToken(account);
+				Intent intent = (Intent) bundle.get(AccountManager.KEY_INTENT);
+				Log.d(TAG, "intent: " + intent);
+				if (intent != null) {
+					// User input required
+					startActivityForResult(intent, GET_ACCOUNT_CREDS_INTENT);
+				} else {
+					String token = bundle.getString(AccountManager.KEY_AUTHTOKEN);
+					Log.d(TAG, "GetAuthTokenCallback: token=" + token);
+					saveToken(token);
+					startFragment();
+				}
+			} catch (OperationCanceledException ex) {
+				Log.d(TAG, "GetAuthTokenCallback", ex);
+				Toast.makeText(MainActivity.this, ex.getMessage(), Toast.LENGTH_LONG).show();
+			} catch (AuthenticatorException ex) {
+				Log.d(TAG, "GetAuthTokenCallback", ex);
+				Toast.makeText(MainActivity.this, ex.getMessage(), Toast.LENGTH_LONG).show();
+			} catch (IOException ex) {
+				Log.d(TAG, "GetAuthTokenCallback", ex);
+				Toast.makeText(MainActivity.this, ex.getMessage(), Toast.LENGTH_LONG).show();
 			}
 		}
 	}
@@ -165,64 +144,84 @@ public class MainActivity extends ActionBarActivity {
 		new AuthDialogFragment().show(getSupportFragmentManager(), "auth");
 	}
 
-	private class GetAuthTokenCallback implements AccountManagerCallback<Bundle> {
-		public void run(AccountManagerFuture<Bundle> result) {
-			try {
-				Bundle bundle = result.getResult();
-				Log.d(TAG, "bundle: " + bundle);
-
-				String message = (String) bundle.get(AccountManager.KEY_ERROR_MESSAGE);
-				if (message != null) {
-					Toast.makeText(MainActivity.this, message, Toast.LENGTH_LONG).show();
-				}
-
-				Intent intent = (Intent) bundle.get(AccountManager.KEY_INTENT);
-				Log.d(TAG, "intent: " + intent);
-				if (intent != null) {
-					// User input required
-					startActivityForResult(intent, GET_ACCOUNT_CREDS_INTENT);
-				} else {
-					String token = bundle.getString(AccountManager.KEY_AUTHTOKEN);
-					Log.d(TAG, "GetAuthTokenCallback: token=" + token);
-					saveToken(token);
-					startFragment();
-				}
-			} catch (OperationCanceledException ex) {
-				Log.d(TAG, "GetAuthTokenCallback", ex);
-				Toast.makeText(MainActivity.this, ex.getMessage(), Toast.LENGTH_LONG).show();
-			} catch (AuthenticatorException ex) {
-				Log.d(TAG, "GetAuthTokenCallback", ex);
-				Toast.makeText(MainActivity.this, ex.getMessage(), Toast.LENGTH_LONG).show();
-			} catch (IOException ex) {
-				Log.d(TAG, "GetAuthTokenCallback", ex);
-				Toast.makeText(MainActivity.this, ex.getMessage(), Toast.LENGTH_LONG).show();
+	@Override
+	protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+		if (requestCode == GET_ACCOUNT_CREDS_INTENT) {
+			if (resultCode == RESULT_OK) {
+				Bundle bundle = data.getExtras();
+				String name = bundle.getString(AccountManager.KEY_ACCOUNT_NAME);
+				String type = bundle.getString(AccountManager.KEY_ACCOUNT_TYPE);
+				Log.d(TAG, "GET_ACCOUNT_CREDS_INTENT: name=" + name + " type=" + type);
+				Account account = new Account(name, type);
+				getAuthToken(account);
 			}
 		}
 	}
 
-	public static class AuthDialogFragment extends DialogFragment {
+	@Override
+	protected void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_main);
 
-		public AuthDialogFragment() {
-			super();
+		if (getIntent() != null && getIntent().getData() != null) {
+			onLogin();
 		}
 
-		@Override
-		public Dialog onCreateDialog(Bundle savedInstanceState) {
-			return new AlertDialog.Builder(getActivity()).setTitle(R.string.auth_title)
-					.setMessage(R.string.auth_message)
-					.setPositiveButton(R.string.auth_positive_button, new DialogInterface.OnClickListener() {
-						@Override
-						public void onClick(DialogInterface dialog, int which) {
-							dialog.dismiss();
-							startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(AUTH_URL)));
-						}
-					}).setNegativeButton(R.string.auth_negative_button, new DialogInterface.OnClickListener() {
-						@Override
-						public void onClick(DialogInterface dialog, int which) {
-							dialog.dismiss();
-							getActivity().finish();
-						}
-					}).create();
+		SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
+		String token = preferences.getString(TOKEN, null);
+		if (token == null) {
+			getToken();
+			return;
 		}
+
+		if (savedInstanceState == null) {
+			startFragment();
+		}
+	}
+
+	@Override
+	public void onCreateContextMenu(ContextMenu menu, View v, ContextMenuInfo menuInfo) {
+		super.onCreateContextMenu(menu, v, menuInfo);
+	}
+
+	private void onLogin() {
+		Uri data = getIntent().getData();
+		setIntent(null);
+		Pattern pattern = Pattern.compile("access_token=(.*?)(&|$)");
+		Matcher matcher = pattern.matcher(data.toString());
+		if (matcher.find()) {
+			final String token = matcher.group(1);
+			if (!TextUtils.isEmpty(token)) {
+				Log.d(TAG, "onLogin: token: " + token);
+				saveToken(token);
+			} else {
+				Log.w(TAG, "onRegistrationSuccess: empty token");
+			}
+		} else {
+			Log.w(TAG, "onRegistrationSuccess: token not found in return url");
+		}
+	}
+
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+		return super.onOptionsItemSelected(item);
+	}
+
+	public void reloadContent() {
+		DiskViewerFragment fragment = (DiskViewerFragment) getSupportFragmentManager().findFragmentByTag(
+				DISK_FRAGMENT_TAG);
+		fragment.restartLoader();
+	}
+
+	private void saveToken(String token) {
+		SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(this).edit();
+		editor.putString(USERNAME, "");
+		editor.putString(TOKEN, token);
+		editor.commit();
+	}
+
+	private void startFragment() {
+		getSupportFragmentManager().beginTransaction()
+				.replace(R.id.container, new DiskViewerFragment(), DISK_FRAGMENT_TAG).commit();
 	};
 }
