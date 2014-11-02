@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<menu xmlns:android="http://schemas.android.com/apk/res/android" >
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto" >
 
     <item
         android:id="@+id/view_current_folder_images"
         android:icon="@drawable/view_icon"
+        app:showAsAction="always"
         android:title="@string/actionbar_view_current_folder"/>
 
 </menu>

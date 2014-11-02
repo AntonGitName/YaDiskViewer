@@ -70,6 +70,8 @@ public class DiskViewerFragment extends ListFragment implements LoaderManager.Lo
 		setListAdapter(adapter);
 		setListShown(false);
 		getLoaderManager().initLoader(0, null, this);
+		
+		getAllImages();
 	}
 
 	private void setDefaultEmptyText() {
@@ -90,24 +92,24 @@ public class DiskViewerFragment extends ListFragment implements LoaderManager.Lo
 		}
 	}
 
-	private ArrayList<ListItem> getAllImages() {
+	private final ArrayList<ListItem> imagesInCurrentDir = new ArrayList<>();
+	
+	private void getAllImages() {
 		ListAdapter adapter = getListAdapter();
 		int length = adapter.getCount();
-		ArrayList<ListItem> images = new ArrayList<>();
 		for (int i = 0; i < length; ++i) {
 			ListItem item = (ListItem) getListAdapter().getItem(i);
 			if (!item.isCollection() && item.getMediaType().equals("image")) {
-				images.add(item);
+				imagesInCurrentDir.add(item);
 			}
 		}
-		Log.d(TAG, "Number of images: " + images.size());
-		return images;
+		Log.d(TAG, "Number of images: " + imagesInCurrentDir.size());
 	}
 	
 	private void changeViewMode() {
 		Log.d(TAG, "Change view mode to images");
 		Bundle args = new Bundle();
-		args.putParcelableArrayList(IMAGES_LIST_KEY, getAllImages());
+		args.putParcelableArrayList(IMAGES_LIST_KEY, imagesInCurrentDir);
 		args.putParcelable(CREDENTIALS, credentials);
 
 		ImageViewFragment fragment = new ImageViewFragment();
@@ -149,7 +151,7 @@ public class DiskViewerFragment extends ListFragment implements LoaderManager.Lo
 
 		inflater.inflate(R.menu.disk_action_bar, menu);
 	}
-
+	
 	public void restartLoader() {
 		getLoaderManager().restartLoader(0, null, this);
 	}
