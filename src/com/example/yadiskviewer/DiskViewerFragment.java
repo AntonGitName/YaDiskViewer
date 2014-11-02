@@ -31,9 +31,9 @@ public class DiskViewerFragment extends ListFragment implements LoaderManager.Lo
 
 	private static final String CURRENT_DIR_KEY = "yadiskviewer.current.dir";
 	public static final String IMAGES_LIST_KEY = "yadiskviewer.images.list";
-	
+
 	public static final String CREDENTIALS = "yadiskviewer.credentials";
-	
+
 	private static final String ROOT = "/";
 
 	private Credentials credentials;
@@ -83,27 +83,31 @@ public class DiskViewerFragment extends ListFragment implements LoaderManager.Lo
 		if (item.isCollection()) {
 			changeDir(item.getFullPath());
 		} else {
-			
+
 			// TODO
-			
-			//downloadFile(item);
+
+			// downloadFile(item);
 		}
 	}
 
 	private final ArrayList<ListItem> imagesInCurrentDir = new ArrayList<>();
-	
+	private boolean imagesCounted = false;
+
 	private void getAllImages() {
-		ListAdapter adapter = getListAdapter();
-		int length = adapter.getCount();
-		for (int i = 0; i < length; ++i) {
-			ListItem item = (ListItem) getListAdapter().getItem(i);
-			if (!item.isCollection() && item.getMediaType().equals("image")) {
-				imagesInCurrentDir.add(item);
+		if (!imagesCounted) {
+			ListAdapter adapter = getListAdapter();
+			int length = adapter.getCount();
+			for (int i = 0; i < length; ++i) {
+				ListItem item = (ListItem) getListAdapter().getItem(i);
+				if (!item.isCollection() && item.getMediaType().equals("image")) {
+					imagesInCurrentDir.add(item);
+				}
 			}
+			Log.d(TAG, "Number of images: " + imagesInCurrentDir.size());
+			imagesCounted = true;
 		}
-		Log.d(TAG, "Number of images: " + imagesInCurrentDir.size());
 	}
-	
+
 	private void changeViewMode() {
 		Log.d(TAG, "Change view mode to images");
 		Bundle args = new Bundle();
@@ -116,7 +120,7 @@ public class DiskViewerFragment extends ListFragment implements LoaderManager.Lo
 		getFragmentManager().beginTransaction().replace(R.id.container, fragment, MainActivity.IMAGE_FRAGMENT_TAG)
 				.addToBackStack(null).commit();
 	}
-	
+
 	protected void changeDir(String dir) {
 		Bundle args = new Bundle();
 		args.putString(CURRENT_DIR_KEY, dir);
@@ -149,7 +153,7 @@ public class DiskViewerFragment extends ListFragment implements LoaderManager.Lo
 
 		inflater.inflate(R.menu.disk_action_bar, menu);
 	}
-	
+
 	public void restartLoader() {
 		getLoaderManager().restartLoader(0, null, this);
 	}
