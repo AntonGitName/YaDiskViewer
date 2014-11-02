@@ -1,25 +1,24 @@
 package com.example.yadiskviewer;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
-import android.support.v4.app.FragmentTransaction;
 import android.support.v4.app.ListFragment;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.Loader;
 import android.util.Log;
-import android.view.ContextMenu;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
 
@@ -31,7 +30,10 @@ public class DiskViewerFragment extends ListFragment implements LoaderManager.Lo
 	private static final String TAG = "DiskViewerFragment";
 
 	private static final String CURRENT_DIR_KEY = "yadiskviewer.current.dir";
-
+	public static final String IMAGES_LIST_KEY = "yadiskviewer.images.list";
+	
+	public static final String CREDENTIALS = "yadiskviewer.credentials";
+	
 	private static final String ROOT = "/";
 
 	private Credentials credentials;
@@ -81,10 +83,40 @@ public class DiskViewerFragment extends ListFragment implements LoaderManager.Lo
 		if (item.isCollection()) {
 			changeDir(item.getFullPath());
 		} else {
-			downloadFile(item);
+			
+			// TODO
+			
+			//downloadFile(item);
 		}
 	}
 
+	private ArrayList<ListItem> getAllImages() {
+		ListAdapter adapter = getListAdapter();
+		int length = adapter.getCount();
+		ArrayList<ListItem> images = new ArrayList<>();
+		for (int i = 0; i < length; ++i) {
+			ListItem item = (ListItem) getListAdapter().getItem(i);
+			if (!item.isCollection() && item.getMediaType().equals("image")) {
+				images.add(item);
+			}
+		}
+		Log.d(TAG, "Number of images: " + images.size());
+		return images;
+	}
+	
+	private void changeViewMode() {
+		Log.d(TAG, "Change view mode to images");
+		Bundle args = new Bundle();
+		args.putParcelableArrayList(IMAGES_LIST_KEY, getAllImages());
+		args.putParcelable(CREDENTIALS, credentials);
+
+		ImageViewFragment fragment = new ImageViewFragment();
+		fragment.setArguments(args);
+
+		getFragmentManager().beginTransaction().replace(android.R.id.content, fragment, MainActivity.IMAGE_FRAGMENT_TAG)
+				.addToBackStack(null).commit();
+	}
+	
 	protected void changeDir(String dir) {
 		Bundle args = new Bundle();
 		args.putString(CURRENT_DIR_KEY, dir);
@@ -96,10 +128,6 @@ public class DiskViewerFragment extends ListFragment implements LoaderManager.Lo
 				.addToBackStack(null).commit();
 	}
 
-	private void downloadFile(ListItem item) {
-		DownloadFileFragment.newInstance(credentials, item).show(getFragmentManager(), "download");
-	}
-
 	@Override
 	public boolean onOptionsItemSelected(MenuItem item) {
 		switch (item.getItemId()) {
@@ -107,10 +135,7 @@ public class DiskViewerFragment extends ListFragment implements LoaderManager.Lo
 			getFragmentManager().popBackStack();
 			break;
 		case R.id.view_current_folder_images:
-			Log.d(TAG, "Change view mode to images");
-			FragmentTransaction ft =  getFragmentManager().beginTransaction().replace(R.id.container, new ImageViewFragment(), MainActivity.IMAGE_FRAGMENT_TAG);
-			ft.commit();
-			ft.addToBackStack(null);
+			changeViewMode();
 			break;
 		default:
 			return super.onOptionsItemSelected(item);

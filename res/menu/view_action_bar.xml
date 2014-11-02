@@ -2,10 +2,11 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android" >
 
     <item
-        android:id="@+id/view_current_folder_images"
+        android:id="@+id/view_current_folder_all"
         android:enabled="true"
         android:icon="@drawable/folder_icon"
         android:showAsAction="ifRoom"
+        android:visible="true"
         android:title="@string/actionbar_change_to_explorer_mode"/>
 
 </menu>

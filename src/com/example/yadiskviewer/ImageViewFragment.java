@@ -4,7 +4,6 @@ import java.util.ArrayList;
 
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
-import android.support.v4.app.FragmentTransaction;
 import android.support.v4.view.ViewPager;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -13,6 +12,9 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+
+import com.yandex.disk.client.Credentials;
+import com.yandex.disk.client.ListItem;
 
 public class ImageViewFragment extends Fragment {
 
@@ -30,17 +32,24 @@ public class ImageViewFragment extends Fragment {
 		if (container == null) {
 			return null;
 		}
-		return inflater.inflate(R.layout.image_fragment, container, false);
+		return inflater.inflate(R.layout.image_pager_fragment, container, false);
 	}
 	 
 	@Override
 	public void onActivityCreated(Bundle savedInstanceState) {
-
 		super.onActivityCreated(savedInstanceState);
-
-		Log.d(TAG, "creating adapter");
-		viewPager = (ViewPager) getActivity().findViewById(R.id.view_pager);		
-		viewPager.setAdapter(new ImagePagerAdapter(getFragmentManager(), new ArrayList<Fragment>()));
+		
+		registerForContextMenu(getView());
+		
+		Log.d(TAG, "Creating adapter");
+		
+		Bundle args = getArguments();
+		
+		viewPager = (ViewPager) getActivity().findViewById(R.id.view_pager);
+		
+		ArrayList<ListItem> list = args.getParcelableArrayList(DiskViewerFragment.IMAGES_LIST_KEY);
+		Credentials credentials = args.getParcelable(DiskViewerFragment.CREDENTIALS);
+		viewPager.setAdapter(new ImagePagerAdapter(getFragmentManager(), list, credentials));
 	}
 	
 	@Override
