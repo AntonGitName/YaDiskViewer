@@ -20,12 +20,26 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.v4.app.DialogFragment;
-import android.support.v4.app.FragmentActivity;
+import android.support.v7.app.ActionBarActivity;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.ContextMenu;
+import android.view.ContextMenu.ContextMenuInfo;
+import android.view.MenuItem;
+import android.view.View;
 import android.widget.Toast;
 
-public class MainActivity extends FragmentActivity {
+public class MainActivity extends ActionBarActivity {
+
+	@Override
+	public void onCreateContextMenu(ContextMenu menu, View v, ContextMenuInfo menuInfo) {
+		super.onCreateContextMenu(menu, v, menuInfo);
+	}
+
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+		return super.onOptionsItemSelected(item);
+	}
 
 	private static String TAG = "MainActivity";
 	public static String DISK_FRAGMENT_TAG = "diskviewer";
@@ -48,7 +62,8 @@ public class MainActivity extends FragmentActivity {
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		
+		setContentView(R.layout.activity_main);
+
 		if (getIntent() != null && getIntent().getData() != null) {
 			onLogin();
 		}
@@ -67,7 +82,7 @@ public class MainActivity extends FragmentActivity {
 
 	private void startFragment() {
 		getSupportFragmentManager().beginTransaction()
-				.replace(android.R.id.content, new DiskViewerFragment(), DISK_FRAGMENT_TAG).commit();
+				.replace(R.id.container, new DiskViewerFragment(), DISK_FRAGMENT_TAG).commit();
 	}
 
 	private void onLogin() {
@@ -96,7 +111,8 @@ public class MainActivity extends FragmentActivity {
 	}
 
 	public void reloadContent() {
-		DiskViewerFragment fragment = (DiskViewerFragment) getSupportFragmentManager().findFragmentByTag(DISK_FRAGMENT_TAG);
+		DiskViewerFragment fragment = (DiskViewerFragment) getSupportFragmentManager().findFragmentByTag(
+				DISK_FRAGMENT_TAG);
 		fragment.restartLoader();
 	}
 
@@ -148,7 +164,7 @@ public class MainActivity extends FragmentActivity {
 		// no account manager for com.yandex
 		new AuthDialogFragment().show(getSupportFragmentManager(), "auth");
 	}
-	
+
 	private class GetAuthTokenCallback implements AccountManagerCallback<Bundle> {
 		public void run(AccountManagerFuture<Bundle> result) {
 			try {

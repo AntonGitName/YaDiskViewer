@@ -113,7 +113,7 @@ public class DiskViewerFragment extends ListFragment implements LoaderManager.Lo
 		ImageViewFragment fragment = new ImageViewFragment();
 		fragment.setArguments(args);
 
-		getFragmentManager().beginTransaction().replace(android.R.id.content, fragment, MainActivity.IMAGE_FRAGMENT_TAG)
+		getFragmentManager().beginTransaction().replace(R.id.container, fragment, MainActivity.IMAGE_FRAGMENT_TAG)
 				.addToBackStack(null).commit();
 	}
 	
@@ -124,7 +124,7 @@ public class DiskViewerFragment extends ListFragment implements LoaderManager.Lo
 		DiskViewerFragment fragment = new DiskViewerFragment();
 		fragment.setArguments(args);
 
-		getFragmentManager().beginTransaction().replace(android.R.id.content, fragment, MainActivity.DISK_FRAGMENT_TAG)
+		getFragmentManager().beginTransaction().replace(R.id.container, fragment, MainActivity.DISK_FRAGMENT_TAG)
 				.addToBackStack(null).commit();
 	}
 

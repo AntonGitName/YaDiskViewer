@@ -12,6 +12,7 @@ import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.util.Log;
 import android.view.Display;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -46,6 +47,7 @@ public class ImagePageFragment extends Fragment implements ProgressListener {
 		
 		layout = new LinearLayout(inflater.getContext());
 		layout.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT));
+		layout.setGravity(Gravity.CENTER);
 		return layout;
 	}
 	 
@@ -69,7 +71,8 @@ public class ImagePageFragment extends Fragment implements ProgressListener {
 			WindowManager wm = (WindowManager) getActivity().getSystemService(Context.WINDOW_SERVICE);
 			Display display = wm.getDefaultDisplay();
 			Point size = new Point();
-			display.getSize(size);
+			size.x = display.getWidth();
+			size.y = display.getHeight();
 			
 			Log.d(TAG, "layout size: " + size.x + ", " + size.y);
 			new DownloadTask(item, getActivity(), credentials, size.x, size.y).execute();			
