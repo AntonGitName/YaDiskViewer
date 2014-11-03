@@ -39,6 +39,7 @@ public class DiskViewerFragment extends ListFragment implements LoaderManager.Lo
 	private String currentDir;
 	private boolean imagesCounted = false;
 	private ArrayList<ListItem> imagesInCurrentDir = new ArrayList<>();
+	private MenuItem changeModeMenuItem;
 	
 	public static class DiskViewerAdapter extends ArrayAdapter<ListItem> {
 		private final LayoutInflater inflater;
@@ -153,6 +154,8 @@ public class DiskViewerFragment extends ListFragment implements LoaderManager.Lo
 		super.onCreateOptionsMenu(menu, inflater);
 
 		inflater.inflate(R.menu.disk_action_bar, menu);
+		
+		changeModeMenuItem = menu.findItem(R.id.view_current_folder_images);
 	}
 
 	@Override
@@ -191,6 +194,7 @@ public class DiskViewerFragment extends ListFragment implements LoaderManager.Lo
 		} else {
 			adapter.setData(data);
 			getAllImages();
+			changeModeMenuItem.setEnabled(true);
 		}
 	}
 

@@ -3,11 +3,6 @@
     xmlns:app="http://schemas.android.com/apk/res-auto" >
 
     <item
-        android:id="@+id/view_current_folder_all"
-        android:icon="@drawable/ic_action_cloud"
-        android:title="@string/actionbar_change_to_explorer_mode"
-        app:showAsAction="always"/>
-    <item
         android:id="@+id/action_start"
         android:enabled="true"
         android:icon="@drawable/ic_action_slideshow"
@@ -18,6 +13,11 @@
         android:enabled="false"
         android:icon="@drawable/ic_action_pause"
         android:title="@string/actionbar_pause_slideshow"
+        app:showAsAction="always"/>
+    <item
+        android:id="@+id/view_current_folder_all"
+        android:icon="@drawable/ic_action_cloud"
+        android:title="@string/actionbar_change_to_explorer_mode"
         app:showAsAction="always"/>
 
 </menu>

@@ -31,19 +31,20 @@ import com.yandex.disk.client.exceptions.WebdavException;
 public final class DownloadImageTask extends AsyncTask<Void, Void, Bitmap> implements ProgressListener {
 
 	private static final String TAG = "DownloadImageTask";
-
 	private static final LayoutParams VIEW_LAYOUT_PARAMS = new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT,
 			LayoutParams.MATCH_PARENT);
-
+	private static final int BYTE_BUFFER_SIZE = 4096;
+	
 	private final Context context;
 	private final Credentials credentials;
-
 	private final ListItem item;
 	private final LinearLayout layout;
 	private final ImageView m_imageView;
-	private ProgressBar m_progressBar;
 	private final int reqHeght;
 	private final int reqWidth;
+	
+	private ProgressBar m_progressBar;
+	
 	private static MessageDigest md;
 
 	public DownloadImageTask(ListItem item, FragmentActivity activity, Credentials credentials, ImageView m_imageView,
@@ -189,7 +190,7 @@ public final class DownloadImageTask extends AsyncTask<Void, Void, Bitmap> imple
 		try {
 			is = new BufferedInputStream(new FileInputStream(file));
 			DigestInputStream dis = new DigestInputStream(is, md);
-			byte[] bytes = new byte[4096];
+			byte[] bytes = new byte[BYTE_BUFFER_SIZE];
 			while (dis.read(bytes) != -1)
 				;
 			dis.close();
