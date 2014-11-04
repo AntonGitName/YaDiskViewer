@@ -34,10 +34,10 @@ public class DiskViewerFragment extends ListFragment implements LoaderManager.Lo
 
 	private static final String TAG = "DiskViewerFragment";
 
-	private DiskViewerAdapter m_Adapter;
-	private Credentials m_Credentials;
-	private String m_CurrentDir;
-	private MenuItem m_ChangeModeMenuItem;
+	private DiskViewerAdapter 	m_Adapter;
+	private Credentials 		m_Credentials;
+	private String 				m_CurrentDir;
+	private MenuItem 			m_ChangeModeMenuItem;
 
 	public static class DiskViewerAdapter extends ArrayAdapter<ListItem> {
 		private final LayoutInflater inflater;
@@ -80,7 +80,8 @@ public class DiskViewerFragment extends ListFragment implements LoaderManager.Lo
 		DiskViewerFragment fragment = new DiskViewerFragment();
 		fragment.setArguments(args);
 
-		getFragmentManager().beginTransaction().replace(R.id.container, fragment).addToBackStack(null).commit();
+		getFragmentManager().beginTransaction().replace(R.id.container, fragment)
+				.addToBackStack(null).commit();
 	}
 
 	private void changeViewMode(ListItem itemToShow) {

@@ -21,12 +21,12 @@ import com.yandex.disk.client.exceptions.WebdavException;
 
 public class ImageViewerLoader extends AsyncTaskLoader<List<ListItem>> {
 
-	public static final String 		IMAGE_TYPE = "image";
-	
-	private static Collator 		collator = Collator.getInstance();
-	private static final int 		ITEMS_PER_REQUEST = 20;
-	private static final String 	TAG = "ImageViewerLoader";
-	
+	public static final String IMAGE_TYPE = "image";
+
+	private static Collator collator = Collator.getInstance();
+	private static final int ITEMS_PER_REQUEST = 20;
+	private static final String TAG = "ImageViewerLoader";
+
 	static {
 		collator.setDecomposition(Collator.CANONICAL_DECOMPOSITION);
 	}
@@ -34,15 +34,15 @@ public class ImageViewerLoader extends AsyncTaskLoader<List<ListItem>> {
 	private Credentials 		m_credentials;
 	private String 				m_dir;
 	private Exception 			m_exception;
-	
+
 	private List<ListItem> 		m_imageItemList;
 	private Handler 			m_handler;
-	private boolean 			m_hasCancelled;
+	private boolean		 		m_hasCancelled;
 
 	private final Comparator<ListItem> FILE_ITEM_COMPARATOR = new Comparator<ListItem>() {
 		@Override
 		public int compare(ListItem f1, ListItem f2) {
-			// there are no collections 
+			// there are no collections
 			return collator.compare(f1.getDisplayName(), f2.getDisplayName());
 		}
 	};
@@ -126,5 +126,5 @@ public class ImageViewerLoader extends AsyncTaskLoader<List<ListItem>> {
 	protected void onStartLoading() {
 		forceLoad();
 	}
-	
+
 }

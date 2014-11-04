@@ -29,15 +29,15 @@ public class ImagePagerAdapter extends PagerAdapter {
 	private static final LayoutParams VIEW_LAYOUT_PARAMS = new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT,
 			LayoutParams.MATCH_PARENT);
 
-	private final Credentials 						m_credentials;
-	private final Fragment 							m_viewerFragment;
-	private final List<DownloadImageTask> 			m_tasks;
-	
-	private TextView 								m_emptyListText;
-	private boolean 								m_onlyText;
-	private String 									m_text;
-	private List<ListItem> 							m_data;
-	
+	private final Credentials 					m_credentials;
+	private final Fragment 						m_viewerFragment;
+	private final List<DownloadImageTask> 		m_tasks;
+
+	private TextView 							m_emptyListText;
+	private boolean 							m_onlyText;
+	private String 								m_text;
+	private List<ListItem> 						m_data;
+
 	public ImagePagerAdapter(List<ListItem> data, Credentials credentials, Fragment fragment) {
 		super();
 
@@ -47,7 +47,7 @@ public class ImagePagerAdapter extends PagerAdapter {
 		this.m_onlyText = false;
 		this.m_tasks = Collections.synchronizedList(new ArrayList<DownloadImageTask>());
 	}
-	
+
 	public ImagePagerAdapter(String text, Credentials credentials, Fragment fragment) {
 		super();
 
@@ -72,11 +72,11 @@ public class ImagePagerAdapter extends PagerAdapter {
 			}
 		}
 	}
-	
+
 	private void cancelTasks() {
 		cancelTasks(-1);
 	}
-	
+
 	private void updateTasks() {
 		synchronized (m_tasks) {
 			Iterator<DownloadImageTask> it = m_tasks.iterator();
@@ -89,7 +89,7 @@ public class ImagePagerAdapter extends PagerAdapter {
 			}
 		}
 	}
-	
+
 	public void cancelUnusedTasks(int currenrPage) {
 		synchronized (m_tasks) {
 			updateTasks();
@@ -104,7 +104,7 @@ public class ImagePagerAdapter extends PagerAdapter {
 			}
 		}
 	}
-	
+
 	@Override
 	public void destroyItem(View collection, int position, Object view) {
 		((ViewPager) collection).removeView((View) view);
@@ -144,7 +144,8 @@ public class ImagePagerAdapter extends PagerAdapter {
 		ImageView imageView = new ImageView(m_viewerFragment.getActivity());
 		imageView.setContentDescription(m_data.get(position).getDisplayName());
 
-		DownloadImageTask task = new DownloadImageTask(m_data.get(position), m_viewerFragment.getActivity(), m_credentials, imageView, layout, position); 
+		DownloadImageTask task = new DownloadImageTask(m_data.get(position), m_viewerFragment.getActivity(),
+				m_credentials, imageView, layout, position);
 		m_tasks.add(task);
 		task.execute();
 
@@ -177,23 +178,38 @@ public class ImagePagerAdapter extends PagerAdapter {
 
 	public void setData(List<ListItem> data, int currentPage) {
 		cancelUnusedTasks(currentPage);
-		this.m_data = data; 
+		this.m_data = data;
 		notifyDataSetChanged();
 	}
-	
+
 	public List<ListItem> getData() {
 		return m_data;
 	}
-	
+
 	public void resetData() {
 		cancelTasks();
 		m_data.clear();
 		m_onlyText = true;
 		notifyDataSetChanged();
 	}
-	
+
 	public void setText(String message) {
 		m_text = message;
 		resetData();
+	}
+	
+	/*
+	 * Run only for pages that are known to be instatiated
+	 */
+	public boolean isPageReady(int page) {
+		synchronized (m_tasks) {
+			updateTasks();
+			for (DownloadImageTask task : m_tasks) {
+				if (task.getPageNumber() == page && task.getStatus() != AsyncTask.Status.FINISHED) {
+					return false;
+				}
+			}
+			return true;
+		}
 	}
 }

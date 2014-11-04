@@ -31,8 +31,8 @@ public class DiskViewerLoader extends AsyncTaskLoader<List<ListItem>> {
 
 	private Credentials 		m_credentials;
 	private String 				m_dir;
-	private Exception  			m_exception;
-	
+	private Exception		 	m_exception;
+
 	private List<ListItem> 		m_fileItemList;
 	private Handler 			m_handler;
 	private boolean 			m_hasCancelled;

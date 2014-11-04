@@ -34,7 +34,7 @@ public final class DownloadImageTask extends AsyncTask<Void, Void, Bitmap> imple
 	private static final LayoutParams VIEW_LAYOUT_PARAMS = new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT,
 			LayoutParams.MATCH_PARENT);
 	private static final int BYTE_BUFFER_SIZE = 4096;
-	
+
 	private final Context 			m_context;
 	private final Credentials 		m_credentials;
 	private final ListItem 			m_itemToDownload;
@@ -45,8 +45,8 @@ public final class DownloadImageTask extends AsyncTask<Void, Void, Bitmap> imple
 	private final int 				m_pageNumber;
 
 	private ProgressBar 			m_pageProgressBar;
-	
-	private static MessageDigest 	m_messageDigest;
+
+	private static MessageDigest m_messageDigest;
 
 	@SuppressWarnings("deprecation")
 	public DownloadImageTask(ListItem item, FragmentActivity activity, Credentials credentials, ImageView m_imageView,
@@ -65,7 +65,7 @@ public final class DownloadImageTask extends AsyncTask<Void, Void, Bitmap> imple
 		this.m_pageImageView = m_imageView;
 		this.m_pageLayout = layout;
 		this.m_pageNumber = page_number;
-		
+
 		if (m_messageDigest == null) {
 			try {
 				m_messageDigest = MessageDigest.getInstance("MD5");
@@ -79,11 +79,12 @@ public final class DownloadImageTask extends AsyncTask<Void, Void, Bitmap> imple
 	public int getPageNumber() {
 		return m_pageNumber;
 	}
-	
+
 	@Override
 	protected void onCancelled() {
 		super.onCancelled();
-		Log.d(TAG, String.format("Cancled loading an image (file: %s, page: %d)", m_itemToDownload.getDisplayName(), m_pageNumber));
+		Log.d(TAG, String.format("Cancled loading an image (file: %s, page: %d)", m_itemToDownload.getDisplayName(),
+				m_pageNumber));
 	}
 
 	@Override
@@ -93,14 +94,17 @@ public final class DownloadImageTask extends AsyncTask<Void, Void, Bitmap> imple
 
 		if (!fileToSave.exists() || !checkFileConsistency(fileToSave, m_itemToDownload)) {
 
-			Log.d(TAG, String.format("Image has not been found (or wrong md5): downloading (file:%s, page: %d)", m_itemToDownload.getDisplayName(), m_pageNumber));
+			Log.d(TAG, String.format("Image has not been found (or wrong md5): downloading (file:%s, page: %d)",
+					m_itemToDownload.getDisplayName(), m_pageNumber));
 
 			TransportClient client = null;
 
 			try {
 				client = TransportClient.getInstance(m_context, m_credentials);
 				client.downloadFile(m_itemToDownload.getFullPath(), fileToSave, this);
-				Log.d(TAG, String.format("Image has been downloaded (file: %s, page: %d)", m_itemToDownload.getDisplayName(), m_pageNumber));
+				Log.d(TAG,
+						String.format("Image has been downloaded (file: %s, page: %d)",
+								m_itemToDownload.getDisplayName(), m_pageNumber));
 			} catch (IOException ex) {
 				Log.d(TAG, "loadFile", ex);
 			} catch (WebdavException ex) {
@@ -111,7 +115,8 @@ public final class DownloadImageTask extends AsyncTask<Void, Void, Bitmap> imple
 				}
 			}
 		} else {
-			Log.d(TAG, String.format("Image has been found (file: %s, page: %d)", m_itemToDownload.getDisplayName(), m_pageNumber));
+			Log.d(TAG, String.format("Image has been found (file: %s, page: %d)", m_itemToDownload.getDisplayName(),
+					m_pageNumber));
 		}
 
 		return loadBitmap(fileToSave.getAbsolutePath(), m_screenWidth, m_screenHeght);
@@ -127,7 +132,9 @@ public final class DownloadImageTask extends AsyncTask<Void, Void, Bitmap> imple
 		m_pageImageView.setImageBitmap(result);
 		m_pageLayout.removeView(m_pageProgressBar);
 		m_pageLayout.addView(m_pageImageView, 0, VIEW_LAYOUT_PARAMS);
-		Log.d(TAG, String.format("Image loaded without being canceled (file: %s, page: %d)", m_itemToDownload.getDisplayName(), m_pageNumber));
+		Log.d(TAG,
+				String.format("Image loaded without being canceled (file: %s, page: %d)",
+						m_itemToDownload.getDisplayName(), m_pageNumber));
 	}
 
 	@Override
@@ -170,7 +177,7 @@ public final class DownloadImageTask extends AsyncTask<Void, Void, Bitmap> imple
 	private static Bitmap loadBitmap(String filename, int reqWidth, int reqHeight) {
 
 		long startTime = System.currentTimeMillis();
-		
+
 		// First decode with inJustDecodeBounds=true to check dimensions
 		final BitmapFactory.Options options = new BitmapFactory.Options();
 		options.inJustDecodeBounds = true;
@@ -182,25 +189,27 @@ public final class DownloadImageTask extends AsyncTask<Void, Void, Bitmap> imple
 		// Decode bitmap with inSampleSize set
 		options.inJustDecodeBounds = false;
 		Bitmap intermediateBitmap = BitmapFactory.decodeFile(filename, options);
-		
-		//final float sizeFactor = (float) intermediateBitmap.getWidth() / (float) intermediateBitmap.getHeight();
-		
-		//Bitmap result = Bitmap.createScaledBitmap(intermediateBitmap, (int) Math.min(reqWidth, reqHeight * sizeFactor),
-		//		(int) Math.min(reqHeight, reqWidth / sizeFactor), false);
-		
+
+		// final float sizeFactor = (float) intermediateBitmap.getWidth() /
+		// (float) intermediateBitmap.getHeight();
+
+		// Bitmap result = Bitmap.createScaledBitmap(intermediateBitmap, (int)
+		// Math.min(reqWidth, reqHeight * sizeFactor),
+		// (int) Math.min(reqHeight, reqWidth / sizeFactor), false);
+
 		Log.d(TAG, "Loading bitmap time: " + (System.currentTimeMillis() - startTime));
-		
+
 		// return result;
 		return intermediateBitmap;
 	}
 
 	private static boolean checkFileConsistency(File file, ListItem item) {
-		
+
 		long startTime = System.currentTimeMillis();
-		
+
 		String originalMD5 = item.getEtag();
 		InputStream is = null;
-		
+
 		try {
 			is = new BufferedInputStream(new FileInputStream(file));
 			DigestInputStream dis = new DigestInputStream(is, m_messageDigest);
@@ -220,9 +229,9 @@ public final class DownloadImageTask extends AsyncTask<Void, Void, Bitmap> imple
 			}
 		}
 		boolean result = originalMD5.equals(md5ToHex(m_messageDigest.digest()));
-		
+
 		Log.d(TAG, "Checking sums, time: " + (System.currentTimeMillis() - startTime));
-		
+
 		return result;
 	}
 
