@@ -27,20 +27,20 @@ import com.yandex.disk.client.ListItem;
 
 public class DiskViewerFragment extends ListFragment implements LoaderManager.LoaderCallbacks<List<ListItem>> {
 
-	public static final String CREDENTIALS = "yadiskviewer.credentials";
+	public static final String CREDENTIALS_KEY = "yadiskviewer.credentials";
 	public static final String IMAGES_LIST_KEY = "yadiskviewer.images.list";
+	public static final String FIRST_TO_SHOW_KEY = "yadiskviewer.first.to.show";
+	public static final String CURRENT_DIR_KEY = "yadiskviewer.current.dir";
 
 	private static final String ROOT = "/";
-	private static final String CURRENT_DIR_KEY = "yadiskviewer.current.dir";
+
 	private static final String TAG = "DiskViewerFragment";
-	
+
 	private DiskViewerAdapter adapter;
 	private Credentials credentials;
 	private String currentDir;
-	private boolean imagesCounted = false;
-	private ArrayList<ListItem> imagesInCurrentDir = new ArrayList<>();
 	private MenuItem changeModeMenuItem;
-	
+
 	public static class DiskViewerAdapter extends ArrayAdapter<ListItem> {
 		private final LayoutInflater inflater;
 
@@ -85,32 +85,19 @@ public class DiskViewerFragment extends ListFragment implements LoaderManager.Lo
 		getFragmentManager().beginTransaction().replace(R.id.container, fragment, MainActivity.DISK_FRAGMENT_TAG)
 				.addToBackStack(null).commit();
 	}
-	private void changeViewMode() {
+
+	private void changeViewMode(ListItem itemToShow) {
 		Log.d(TAG, "Change view mode to images");
 		Bundle args = new Bundle();
-		args.putParcelableArrayList(IMAGES_LIST_KEY, imagesInCurrentDir);
-		args.putParcelable(CREDENTIALS, credentials);
+		args.putParcelable(CREDENTIALS_KEY, credentials);
+		args.putParcelable(FIRST_TO_SHOW_KEY, itemToShow);
+		args.putString(CURRENT_DIR_KEY, currentDir);
 
-		ImageViewFragment fragment = new ImageViewFragment();
+		ImageViewerFragment fragment = new ImageViewerFragment();
 		fragment.setArguments(args);
 
 		getFragmentManager().beginTransaction().replace(R.id.container, fragment, MainActivity.IMAGE_FRAGMENT_TAG)
 				.addToBackStack(null).commit();
-	}
-
-	private void getAllImages() {
-		if (!imagesCounted) {
-			ListAdapter adapter = getListAdapter();
-			int length = adapter.getCount();
-			for (int i = 0; i < length; ++i) {
-				ListItem item = (ListItem) getListAdapter().getItem(i);
-				if (!item.isCollection() && item.getMediaType().equals("image")) {
-					imagesInCurrentDir.add(item);
-				}
-			}
-			Log.d(TAG, "Number of images: " + imagesInCurrentDir.size());
-			imagesCounted = true;
-		}
 	}
 
 	@Override
@@ -154,7 +141,7 @@ public class DiskViewerFragment extends ListFragment implements LoaderManager.Lo
 		super.onCreateOptionsMenu(menu, inflater);
 
 		inflater.inflate(R.menu.disk_action_bar, menu);
-		
+
 		changeModeMenuItem = menu.findItem(R.id.view_current_folder_images);
 	}
 
@@ -165,10 +152,9 @@ public class DiskViewerFragment extends ListFragment implements LoaderManager.Lo
 		if (item.isCollection()) {
 			changeDir(item.getFullPath());
 		} else {
-
-			// TODO
-
-			// downloadFile(item);
+			if (item.getMediaType().equals(ImageViewerLoader.IMAGE_TYPE)) {
+				changeViewMode(item);
+			}
 		}
 	}
 
@@ -193,7 +179,6 @@ public class DiskViewerFragment extends ListFragment implements LoaderManager.Lo
 			}
 		} else {
 			adapter.setData(data);
-			getAllImages();
 			changeModeMenuItem.setEnabled(true);
 		}
 	}
@@ -205,7 +190,7 @@ public class DiskViewerFragment extends ListFragment implements LoaderManager.Lo
 			getFragmentManager().popBackStack();
 			break;
 		case R.id.view_current_folder_images:
-			changeViewMode();
+			changeViewMode(null);
 			break;
 		default:
 			return super.onOptionsItemSelected(item);
@@ -218,6 +203,6 @@ public class DiskViewerFragment extends ListFragment implements LoaderManager.Lo
 	}
 
 	private void setDefaultEmptyText() {
-		setEmptyText(getString(R.string.example_no_files));
+		setEmptyText(getString(R.string.no_files));
 	}
 }

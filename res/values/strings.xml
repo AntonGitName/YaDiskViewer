@@ -2,7 +2,8 @@
 <resources>
 
     <string name="app_name">YaDiskViewer</string>
-    <string name="example_no_files">No files</string>
+    <string name="no_files">No files</string>
+    <string name="no_image_files">No image files in current folder</string>
     <string name="action_settings">Settings</string>
     
     <string name="auth_title">Auth</string>
@@ -20,8 +21,5 @@
     <string name="actionbar_pause_slideshow">Pause slideshow</string>
     
 	<string name="imageview_description">Image Thumbnail</string>
-	
-	<string name="no_images_in_dir">No images to show in current folder</string>
-	
     
 </resources>

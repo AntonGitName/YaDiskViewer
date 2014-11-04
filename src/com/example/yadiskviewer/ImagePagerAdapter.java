@@ -1,9 +1,6 @@
 package com.example.yadiskviewer;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import android.os.Parcelable;
 import android.support.v4.app.Fragment;
@@ -38,18 +35,16 @@ public class ImagePagerAdapter extends PagerAdapter {
 	// LinearLayout.LayoutParams(LayoutParams.WRAP_CONTENT,
 	// LayoutParams.WRAP_CONTENT);
 
-	private final boolean isEmpty;
+	private boolean onlyText = false;
+	private String text;
 
-	private final List<ListItem> list;
+	private List<ListItem> list;
 
-	private final Map<Integer, View> pages = new HashMap<>();
-
-	public ImagePagerAdapter(ArrayList<ListItem> list, Credentials credentials, Fragment fragment) {
+	public ImagePagerAdapter(List<ListItem> list, Credentials credentials, Fragment fragment) {
 		super();
 
 		this.list = list;
 		this.credentials = credentials;
-		this.isEmpty = list.isEmpty();
 		this.fragment = fragment;
 	}
 
@@ -64,31 +59,24 @@ public class ImagePagerAdapter extends PagerAdapter {
 
 	@Override
 	public int getCount() {
-		return isEmpty ? 1 : list.size();
+		return onlyText ? 1 : list.size();
 	}
 
 	@Override
 	public Object instantiateItem(View collection, int position) {
-		Log.d(TAG, "Instantiate item " + position);
+		Log.d(TAG, "Instantiate item " + position + " of " + list.size());
 
 		ViewPager pager = (ViewPager) collection;
 
 		// nothing to show
-		if (isEmpty) {
+		if (onlyText) {
 			// create view only once
 			if (emptyListText == null) {
 				emptyListText = new TextView(fragment.getActivity());
-				emptyListText.setText(R.string.no_images_in_dir);
+				emptyListText.setText(text);
 				pager.addView(emptyListText, 0);
 			}
 			return emptyListText;
-		}
-
-		// already created view
-		if (pages.containsKey(position)) {
-			View v = pages.get(position);
-			pager.addView(v, 0);
-			return v;
 		}
 
 		// we have to create layout for every page
@@ -101,8 +89,6 @@ public class ImagePagerAdapter extends PagerAdapter {
 
 		new DownloadImageTask(list.get(position), fragment.getActivity(), credentials, imageView, layout).execute();
 
-		// save the page
-		pages.put(position, layout);
 		pager.addView(layout);
 
 		return layout;
@@ -125,5 +111,25 @@ public class ImagePagerAdapter extends PagerAdapter {
 
 	@Override
 	public void startUpdate(View arg0) {
+	}
+
+	public void setData(List<ListItem> data) {
+		this.list = data; 
+		notifyDataSetChanged();
+	}
+	
+	public List<ListItem> getData() {
+		return list;
+	}
+	
+	public void resetData() {
+		list.clear();
+		onlyText = true;
+		notifyDataSetChanged();
+	}
+	
+	public void setText(String message) {
+		text = message;
+		resetData();
 	}
 }

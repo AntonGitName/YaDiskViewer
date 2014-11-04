@@ -207,12 +207,6 @@ public class MainActivity extends ActionBarActivity {
 		return super.onOptionsItemSelected(item);
 	}
 
-	public void reloadContent() {
-		DiskViewerFragment fragment = (DiskViewerFragment) getSupportFragmentManager().findFragmentByTag(
-				DISK_FRAGMENT_TAG);
-		fragment.restartLoader();
-	}
-
 	private void saveToken(String token) {
 		SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(this).edit();
 		editor.putString(USERNAME, "");
