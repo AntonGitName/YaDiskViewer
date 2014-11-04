@@ -4,7 +4,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.TimeUnit;
 
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.v4.app.Fragment;
@@ -38,6 +40,7 @@ public class ImageViewerFragment extends Fragment implements LoaderManager.Loade
 	private ListItem 				m_itemToShow;
 	private int 					m_currentPageNumber;
 	private boolean 				m_slideshowFlag;
+	private boolean 				m_isAlive;
 	private Timer 					m_timer;
 	
 	@Override
@@ -96,6 +99,7 @@ public class ImageViewerFragment extends Fragment implements LoaderManager.Loade
 		m_viewPager.setAdapter(m_viewPagerAdapter);
 
 		m_timer = new Timer();
+		m_isAlive = true;
 		
 		getActivity().getActionBar().setDisplayHomeAsUpEnabled(true);
 		
@@ -115,6 +119,7 @@ public class ImageViewerFragment extends Fragment implements LoaderManager.Loade
 		super.onSaveInstanceState(outState);
 		
 		m_timer.cancel();
+		m_isAlive = false;
 		
 		outState.putParcelableArrayList(DiskViewerFragment.IMAGES_LIST_KEY,
 				(ArrayList<ListItem>) m_viewPagerAdapter.getData());
@@ -232,21 +237,39 @@ public class ImageViewerFragment extends Fragment implements LoaderManager.Loade
 
             @Override
             public void run() {
+            	
+            	if (m_startSlideshowMenuItem.isEnabled() || !m_isAlive) {
+            		cancel();
+            		return;
+            	}
+            	
                 handler.post(new Runnable() {
-
+                	
                     @Override
                     public void run() {
-                    	while (!m_viewPagerAdapter.isPageReady(m_currentPageNumber))
-            				;
-                    	if (m_viewPagerAdapter.getCount() == 0) {
-							return;
-						}
-                    	if (m_startSlideshowMenuItem.isEnabled()) {
-                    		cancel();
-                    	} else {
-							m_currentPageNumber = (m_currentPageNumber + 1) % m_viewPagerAdapter.getCount();
-							m_viewPager.setCurrentItem(m_currentPageNumber);
-                    	}
+                    	new AsyncTask<Void, Void, Void>() {
+
+							@Override
+							protected Void doInBackground(Void... params) {
+								while (!m_viewPagerAdapter.isPageReady(m_currentPageNumber) && m_isAlive)
+		                    		;
+								return null;
+							}
+                    		
+							@Override
+							protected void onPostExecute(Void result) {
+								if (!m_isAlive) {
+		                    		return;
+		                    	}
+		                    	if (m_viewPagerAdapter.getCount() == 0) {
+									return;
+								}
+		                    	if (!m_startSlideshowMenuItem.isEnabled()) {
+									m_currentPageNumber = (m_currentPageNumber + 1) % m_viewPagerAdapter.getCount();
+									m_viewPager.setCurrentItem(m_currentPageNumber);
+		                    	}
+							}
+                    	}.execute();
                     }
                 });
             }
