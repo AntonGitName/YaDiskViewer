@@ -105,8 +105,10 @@ public class ImageViewerFragment extends Fragment implements LoaderManager.Loade
 	@Override
 	public void onSaveInstanceState(Bundle outState) {
 		super.onSaveInstanceState(outState);
-
-		m_nextSlideTask.cancel(true);
+		
+		if (m_nextSlideTask != null) {
+			m_nextSlideTask.cancel(true);
+		}
 		
 		outState.putParcelableArrayList(DiskViewerFragment.IMAGES_LIST_KEY,
 				(ArrayList<ListItem>) m_viewPagerAdapter.getData());
