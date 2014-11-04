@@ -31,22 +31,19 @@ import android.widget.Toast;
 
 public class MainActivity extends ActionBarActivity {
 
-	public static final String CLIENT_ID = "46a3ee473e0a4934a716217438cbe4db";
-	public static final String ACCOUNT_TYPE = "com.yandex";
+	private static final String 	CLIENT_ID = "46a3ee473e0a4934a716217438cbe4db";
+	private static final String 	ACCOUNT_TYPE = "com.yandex";
 	private static final String ACTION_ADD_ACCOUNT = "com.yandex.intent.ADD_ACCOUNT";
-	public static final String AUTH_URL = "https://oauth.yandex.ru/authorize?response_type=token&client_id="
+	private static final String 	AUTH_URL = "https://oauth.yandex.ru/authorize?response_type=token&client_id="
 			+ CLIENT_ID;
 
-	public static final String CLIENT_SECRET = "d6e3446d3c9d4847a48f362b34adf531";
-	public static String DISK_FRAGMENT_TAG = "diskviewer";
-
-	private static final int GET_ACCOUNT_CREDS_INTENT = 100;
-	public static String IMAGE_FRAGMENT_TAG = "imageviewer";
+	private static final String CLIENT_SECRET = "d6e3446d3c9d4847a48f362b34adf531";
 	private static final String KEY_CLIENT_SECRET = "clientSecret";
-	private static String TAG = "MainActivity";
-
-	public static String TOKEN = "yadiskviewer.token";
-	public static String USERNAME = "yadiskviewer.username";
+	private static final String TAG = "MainActivity";
+	private static final int GET_ACCOUNT_CREDS_INTENT = 100;
+	
+	public static final String TOKEN = "yadiskviewer.token";
+	public static final String USERNAME = "yadiskviewer.username";
 	
 	public static class AuthDialogFragment extends DialogFragment {
 
@@ -216,6 +213,6 @@ public class MainActivity extends ActionBarActivity {
 
 	private void startFragment() {
 		getSupportFragmentManager().beginTransaction()
-				.replace(R.id.container, new DiskViewerFragment(), DISK_FRAGMENT_TAG).commit();
+				.replace(R.id.container, new DiskViewerFragment()).commit();
 	};
 }

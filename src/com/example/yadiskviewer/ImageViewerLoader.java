@@ -21,56 +21,51 @@ import com.yandex.disk.client.exceptions.WebdavException;
 
 public class ImageViewerLoader extends AsyncTaskLoader<List<ListItem>> {
 
-	private static Collator collator = Collator.getInstance();
-
-	private static final int ITEMS_PER_REQUEST = 20;
-
-	public static final String IMAGE_TYPE = "image";
-	private static String TAG = "ImageViewerLoader";
+	public static final String 		IMAGE_TYPE = "image";
+	
+	private static Collator 		collator = Collator.getInstance();
+	private static final int 		ITEMS_PER_REQUEST = 20;
+	private static final String 	TAG = "ImageViewerLoader";
+	
 	static {
 		collator.setDecomposition(Collator.CANONICAL_DECOMPOSITION);
 	}
 
-	private Credentials credentials;
-	private String dir;
-	private Exception exception;
+	private Credentials 		m_credentials;
+	private String 				m_dir;
+	private Exception 			m_exception;
 	
-	private List<ListItem> fileItemList;
-	private Handler handler;
-	private boolean hasCancelled;
+	private List<ListItem> 		m_imageItemList;
+	private Handler 			m_handler;
+	private boolean 			m_hasCancelled;
 
 	private final Comparator<ListItem> FILE_ITEM_COMPARATOR = new Comparator<ListItem>() {
 		@Override
 		public int compare(ListItem f1, ListItem f2) {
-			if (f1.isCollection() && !f2.isCollection()) {
-				return -1;
-			} else if (f2.isCollection() && !f1.isCollection()) {
-				return 1;
-			} else {
-				return collator.compare(f1.getDisplayName(), f2.getDisplayName());
-			}
+			// there are no collections 
+			return collator.compare(f1.getDisplayName(), f2.getDisplayName());
 		}
 	};
 
 	public ImageViewerLoader(Context context, Credentials credentials, String dir) {
 		super(context);
-		handler = new Handler();
-		this.credentials = credentials;
-		this.dir = dir;
+		m_handler = new Handler();
+		this.m_credentials = credentials;
+		this.m_dir = dir;
 	}
 
 	public Exception getException() {
-		return exception;
+		return m_exception;
 	}
 
 	@Override
 	public List<ListItem> loadInBackground() {
-		fileItemList = new ArrayList<ListItem>();
-		hasCancelled = false;
+		m_imageItemList = new ArrayList<ListItem>();
+		m_hasCancelled = false;
 		TransportClient client = null;
 		try {
-			client = TransportClient.getInstance(getContext(), credentials);
-			client.getList(dir, ITEMS_PER_REQUEST, new ListParsingHandler() {
+			client = TransportClient.getInstance(getContext(), m_credentials);
+			client.getList(m_dir, ITEMS_PER_REQUEST, new ListParsingHandler() {
 
 				// First item in PROPFIND is the current collection name
 				boolean ignoreFirstItem = true;
@@ -82,7 +77,7 @@ public class ImageViewerLoader extends AsyncTaskLoader<List<ListItem>> {
 						return false;
 					} else {
 						if (!item.isCollection() && item.getMediaType().equals(IMAGE_TYPE)) {
-							fileItemList.add(item);
+							m_imageItemList.add(item);
 						}
 						return true;
 					}
@@ -90,41 +85,41 @@ public class ImageViewerLoader extends AsyncTaskLoader<List<ListItem>> {
 
 				@Override
 				public boolean hasCancelled() {
-					return hasCancelled;
+					return m_hasCancelled;
 				}
 
 				@Override
 				public void onPageFinished(int itemsOnPage) {
 					ignoreFirstItem = true;
-					handler.post(new Runnable() {
+					m_handler.post(new Runnable() {
 						@Override
 						public void run() {
-							Collections.sort(fileItemList, FILE_ITEM_COMPARATOR);
-							deliverResult(new ArrayList<ListItem>(fileItemList));
+							Collections.sort(m_imageItemList, FILE_ITEM_COMPARATOR);
+							deliverResult(new ArrayList<ListItem>(m_imageItemList));
 						}
 					});
 				}
 			});
-			Collections.sort(fileItemList, FILE_ITEM_COMPARATOR);
-			exception = null;
+			Collections.sort(m_imageItemList, FILE_ITEM_COMPARATOR);
+			m_exception = null;
 		} catch (CancelledPropfindException ex) {
-			return fileItemList;
+			return m_imageItemList;
 		} catch (WebdavException ex) {
 			Log.d(TAG, "loadInBackground", ex);
-			exception = ex;
+			m_exception = ex;
 		} catch (IOException ex) {
 			Log.d(TAG, "loadInBackground", ex);
-			exception = ex;
+			m_exception = ex;
 		} finally {
 			TransportClient.shutdown(client);
 		}
-		return fileItemList;
+		return m_imageItemList;
 	}
 
 	@Override
 	protected void onReset() {
 		super.onReset();
-		hasCancelled = true;
+		m_hasCancelled = true;
 	}
 
 	@Override

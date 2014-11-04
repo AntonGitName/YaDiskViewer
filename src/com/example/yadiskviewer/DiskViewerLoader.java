@@ -24,18 +24,18 @@ public class DiskViewerLoader extends AsyncTaskLoader<List<ListItem>> {
 	private static Collator collator = Collator.getInstance();
 
 	private static final int ITEMS_PER_REQUEST = 20;
-	private static String TAG = "DiskViewerLoader";
+	private static final String TAG = "DiskViewerLoader";
 	static {
 		collator.setDecomposition(Collator.CANONICAL_DECOMPOSITION);
 	}
 
-	private Credentials credentials;
-	private String dir;
-	private Exception exception;
+	private Credentials 		m_credentials;
+	private String 				m_dir;
+	private Exception  			m_exception;
 	
-	private List<ListItem> fileItemList;
-	private Handler handler;
-	private boolean hasCancelled;
+	private List<ListItem> 		m_fileItemList;
+	private Handler 			m_handler;
+	private boolean 			m_hasCancelled;
 
 	private final Comparator<ListItem> FILE_ITEM_COMPARATOR = new Comparator<ListItem>() {
 		@Override
@@ -52,23 +52,23 @@ public class DiskViewerLoader extends AsyncTaskLoader<List<ListItem>> {
 
 	public DiskViewerLoader(Context context, Credentials credentials, String dir) {
 		super(context);
-		handler = new Handler();
-		this.credentials = credentials;
-		this.dir = dir;
+		m_handler = new Handler();
+		this.m_credentials = credentials;
+		this.m_dir = dir;
 	}
 
 	public Exception getException() {
-		return exception;
+		return m_exception;
 	}
 
 	@Override
 	public List<ListItem> loadInBackground() {
-		fileItemList = new ArrayList<ListItem>();
-		hasCancelled = false;
+		m_fileItemList = new ArrayList<ListItem>();
+		m_hasCancelled = false;
 		TransportClient client = null;
 		try {
-			client = TransportClient.getInstance(getContext(), credentials);
-			client.getList(dir, ITEMS_PER_REQUEST, new ListParsingHandler() {
+			client = TransportClient.getInstance(getContext(), m_credentials);
+			client.getList(m_dir, ITEMS_PER_REQUEST, new ListParsingHandler() {
 
 				// First item in PROPFIND is the current collection name
 				boolean ignoreFirstItem = true;
@@ -79,48 +79,48 @@ public class DiskViewerLoader extends AsyncTaskLoader<List<ListItem>> {
 						ignoreFirstItem = false;
 						return false;
 					} else {
-						fileItemList.add(item);
+						m_fileItemList.add(item);
 						return true;
 					}
 				}
 
 				@Override
 				public boolean hasCancelled() {
-					return hasCancelled;
+					return m_hasCancelled;
 				}
 
 				@Override
 				public void onPageFinished(int itemsOnPage) {
 					ignoreFirstItem = true;
-					handler.post(new Runnable() {
+					m_handler.post(new Runnable() {
 						@Override
 						public void run() {
-							Collections.sort(fileItemList, FILE_ITEM_COMPARATOR);
-							deliverResult(new ArrayList<ListItem>(fileItemList));
+							Collections.sort(m_fileItemList, FILE_ITEM_COMPARATOR);
+							deliverResult(new ArrayList<ListItem>(m_fileItemList));
 						}
 					});
 				}
 			});
-			Collections.sort(fileItemList, FILE_ITEM_COMPARATOR);
-			exception = null;
+			Collections.sort(m_fileItemList, FILE_ITEM_COMPARATOR);
+			m_exception = null;
 		} catch (CancelledPropfindException ex) {
-			return fileItemList;
+			return m_fileItemList;
 		} catch (WebdavException ex) {
 			Log.d(TAG, "loadInBackground", ex);
-			exception = ex;
+			m_exception = ex;
 		} catch (IOException ex) {
 			Log.d(TAG, "loadInBackground", ex);
-			exception = ex;
+			m_exception = ex;
 		} finally {
 			TransportClient.shutdown(client);
 		}
-		return fileItemList;
+		return m_fileItemList;
 	}
 
 	@Override
 	protected void onReset() {
 		super.onReset();
-		hasCancelled = true;
+		m_hasCancelled = true;
 	}
 
 	@Override

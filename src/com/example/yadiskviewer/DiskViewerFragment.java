@@ -1,6 +1,5 @@
 package com.example.yadiskviewer;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import android.content.Context;
@@ -18,7 +17,6 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
-import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
 
@@ -36,10 +34,10 @@ public class DiskViewerFragment extends ListFragment implements LoaderManager.Lo
 
 	private static final String TAG = "DiskViewerFragment";
 
-	private DiskViewerAdapter adapter;
-	private Credentials credentials;
-	private String currentDir;
-	private MenuItem changeModeMenuItem;
+	private DiskViewerAdapter m_Adapter;
+	private Credentials m_Credentials;
+	private String m_CurrentDir;
+	private MenuItem m_ChangeModeMenuItem;
 
 	public static class DiskViewerAdapter extends ArrayAdapter<ListItem> {
 		private final LayoutInflater inflater;
@@ -82,22 +80,20 @@ public class DiskViewerFragment extends ListFragment implements LoaderManager.Lo
 		DiskViewerFragment fragment = new DiskViewerFragment();
 		fragment.setArguments(args);
 
-		getFragmentManager().beginTransaction().replace(R.id.container, fragment, MainActivity.DISK_FRAGMENT_TAG)
-				.addToBackStack(null).commit();
+		getFragmentManager().beginTransaction().replace(R.id.container, fragment).addToBackStack(null).commit();
 	}
 
 	private void changeViewMode(ListItem itemToShow) {
 		Log.d(TAG, "Change view mode to images");
 		Bundle args = new Bundle();
-		args.putParcelable(CREDENTIALS_KEY, credentials);
+		args.putParcelable(CREDENTIALS_KEY, m_Credentials);
 		args.putParcelable(FIRST_TO_SHOW_KEY, itemToShow);
-		args.putString(CURRENT_DIR_KEY, currentDir);
+		args.putString(CURRENT_DIR_KEY, m_CurrentDir);
 
 		ImageViewerFragment fragment = new ImageViewerFragment();
 		fragment.setArguments(args);
 
-		getFragmentManager().beginTransaction().replace(R.id.container, fragment, MainActivity.IMAGE_FRAGMENT_TAG)
-				.addToBackStack(null).commit();
+		getFragmentManager().beginTransaction().replace(R.id.container, fragment).addToBackStack(null).commit();
 	}
 
 	@Override
@@ -114,26 +110,26 @@ public class DiskViewerFragment extends ListFragment implements LoaderManager.Lo
 		String username = preferences.getString(MainActivity.USERNAME, null);
 		String token = preferences.getString(MainActivity.TOKEN, null);
 
-		credentials = new Credentials(username, token);
+		m_Credentials = new Credentials(username, token);
 
 		Bundle args = getArguments();
 		if (args != null) {
-			currentDir = args.getString(CURRENT_DIR_KEY);
+			m_CurrentDir = args.getString(CURRENT_DIR_KEY);
 		}
-		if (currentDir == null) {
-			currentDir = ROOT;
+		if (m_CurrentDir == null) {
+			m_CurrentDir = ROOT;
 		}
-		getActivity().getActionBar().setDisplayHomeAsUpEnabled(!ROOT.equals(currentDir));
+		getActivity().getActionBar().setDisplayHomeAsUpEnabled(!ROOT.equals(m_CurrentDir));
 
-		adapter = new DiskViewerAdapter(getActivity());
-		setListAdapter(adapter);
+		m_Adapter = new DiskViewerAdapter(getActivity());
+		setListAdapter(m_Adapter);
 		setListShown(false);
 		getLoaderManager().initLoader(0, null, this);
 	}
 
 	@Override
 	public Loader<List<ListItem>> onCreateLoader(int i, Bundle bundle) {
-		return new DiskViewerLoader(getActivity(), credentials, currentDir);
+		return new DiskViewerLoader(getActivity(), m_Credentials, m_CurrentDir);
 	}
 
 	@Override
@@ -142,7 +138,7 @@ public class DiskViewerFragment extends ListFragment implements LoaderManager.Lo
 
 		inflater.inflate(R.menu.disk_action_bar, menu);
 
-		changeModeMenuItem = menu.findItem(R.id.view_current_folder_images);
+		m_ChangeModeMenuItem = menu.findItem(R.id.view_current_folder_images);
 	}
 
 	@Override
@@ -160,7 +156,7 @@ public class DiskViewerFragment extends ListFragment implements LoaderManager.Lo
 
 	@Override
 	public void onLoaderReset(Loader<List<ListItem>> loader) {
-		adapter.setData(null);
+		m_Adapter.setData(null);
 	}
 
 	@Override
@@ -178,8 +174,8 @@ public class DiskViewerFragment extends ListFragment implements LoaderManager.Lo
 				setDefaultEmptyText();
 			}
 		} else {
-			adapter.setData(data);
-			changeModeMenuItem.setEnabled(true);
+			m_Adapter.setData(data);
+			m_ChangeModeMenuItem.setEnabled(true);
 		}
 	}
 

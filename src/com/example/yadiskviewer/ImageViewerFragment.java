@@ -22,19 +22,16 @@ import com.yandex.disk.client.ListItem;
 public class ImageViewerFragment extends Fragment implements LoaderManager.LoaderCallbacks<List<ListItem>>{
 
 	private static final String ITEM_TO_SHOW = "ITEM_TO_SHOW";
+	private static final String TAG = "ImageViewFragment";
 
-	private static String TAG = "ImageViewFragment";
-
-	private ViewPager pager;
-	private ImagePagerAdapter adapter;
-
-	private MenuItem startSlideshowMenuItem;
-	private MenuItem pauseSlideshowMenuItem;
-	
-	private Credentials credentials;
-	private String currentDir;
-
-	private ListItem itemToShow;
+	private ViewPager 				m_viewPager;
+	private ImagePagerAdapter 		m_viewPagerAdapter;
+	private MenuItem 				m_startSlideshowMenuItem;
+	private MenuItem 				m_pauseSlideshowMenuItem;
+	private Credentials 			m_credentials;
+	private String 					m_currentDir;
+	private ListItem 				m_itemToShow;
+	private int 					m_currentPageNumber;
 	
 	@Override
 	public void onActivityCreated(Bundle savedInstanceState) {
@@ -46,21 +43,39 @@ public class ImageViewerFragment extends Fragment implements LoaderManager.Loade
 
 		Bundle args = getArguments();
 		
-		pager = (ViewPager) getActivity().findViewById(R.id.view_pager);
+		m_viewPager = (ViewPager) getActivity().findViewById(R.id.view_pager);
 
-		credentials = args.getParcelable(DiskViewerFragment.CREDENTIALS_KEY);
-		currentDir = args.getString(DiskViewerFragment.CURRENT_DIR_KEY);
-		itemToShow = args.getParcelable(DiskViewerFragment.FIRST_TO_SHOW_KEY);
+		m_viewPager.setOnPageChangeListener(new ViewPager.OnPageChangeListener() {
+			
+			@Override
+			public void onPageSelected(int arg0) {
+				m_currentPageNumber = arg0;
+				m_viewPagerAdapter.cancelUnusedTasks(m_currentPageNumber);
+			}
+			
+			@Override
+			public void onPageScrolled(int arg0, float arg1, int arg2) {
+			}
+			
+			@Override
+			public void onPageScrollStateChanged(int arg0) {
+			}
+		});
+		
+		m_credentials = args.getParcelable(DiskViewerFragment.CREDENTIALS_KEY);
+		m_currentDir = args.getString(DiskViewerFragment.CURRENT_DIR_KEY);
+		m_itemToShow = args.getParcelable(DiskViewerFragment.FIRST_TO_SHOW_KEY);
 		
 		ArrayList<ListItem> adapterData;
 		if (savedInstanceState != null) {
 			adapterData = savedInstanceState.getParcelableArrayList(DiskViewerFragment.IMAGES_LIST_KEY);
-			itemToShow = savedInstanceState.getParcelable(ITEM_TO_SHOW);
+			m_itemToShow = savedInstanceState.getParcelable(ITEM_TO_SHOW);
 		} else {
 			adapterData = new ArrayList<ListItem>();
+			m_currentPageNumber = 0;
 		}
-		adapter = new ImagePagerAdapter(adapterData, credentials, this);
-		pager.setAdapter(adapter);
+		m_viewPagerAdapter = new ImagePagerAdapter(adapterData, m_credentials, this);
+		m_viewPager.setAdapter(m_viewPagerAdapter);
 
 		getLoaderManager().initLoader(0, null, this);
 	}
@@ -69,8 +84,8 @@ public class ImageViewerFragment extends Fragment implements LoaderManager.Loade
 	public void onSaveInstanceState(Bundle outState) {
 		super.onSaveInstanceState(outState);
 		
-		outState.putParcelableArrayList(DiskViewerFragment.IMAGES_LIST_KEY, (ArrayList<ListItem>) adapter.getData());
-		outState.putParcelable(ITEM_TO_SHOW, itemToShow);
+		outState.putParcelableArrayList(DiskViewerFragment.IMAGES_LIST_KEY, (ArrayList<ListItem>) m_viewPagerAdapter.getData());
+		outState.putParcelable(ITEM_TO_SHOW, m_itemToShow);
 	}
 
 	@Override
@@ -79,8 +94,8 @@ public class ImageViewerFragment extends Fragment implements LoaderManager.Loade
 
 		inflater.inflate(R.menu.view_action_bar, menu);
 		
-		startSlideshowMenuItem = menu.findItem(R.id.action_start);
-		pauseSlideshowMenuItem = menu.findItem(R.id.action_pause);
+		m_startSlideshowMenuItem = menu.findItem(R.id.action_start);
+		m_pauseSlideshowMenuItem = menu.findItem(R.id.action_pause);
 	}
 
 	@Override
@@ -104,13 +119,13 @@ public class ImageViewerFragment extends Fragment implements LoaderManager.Loade
 			break;
 		case R.id.action_start:
 			Log.d(TAG, "Start slideshow");
-			startSlideshowMenuItem.setEnabled(false);
-			pauseSlideshowMenuItem.setEnabled(true);
+			m_startSlideshowMenuItem.setEnabled(false);
+			m_pauseSlideshowMenuItem.setEnabled(true);
 			break;
 		case R.id.action_pause:
 			Log.d(TAG, "Pause slideshow");
-			startSlideshowMenuItem.setEnabled(true);
-			pauseSlideshowMenuItem.setEnabled(false);
+			m_startSlideshowMenuItem.setEnabled(true);
+			m_pauseSlideshowMenuItem.setEnabled(false);
 			break;
 		default:
 			return super.onOptionsItemSelected(item);
@@ -120,12 +135,12 @@ public class ImageViewerFragment extends Fragment implements LoaderManager.Loade
 
 	@Override
 	public Loader<List<ListItem>> onCreateLoader(int i, Bundle bundle) {
-		return new ImageViewerLoader(getActivity(), credentials, currentDir);
+		return new ImageViewerLoader(getActivity(), m_credentials, m_currentDir);
 	}
 	
 	@Override
 	public void onLoaderReset(Loader<List<ListItem>> loader) {
-		adapter.resetData();
+		m_viewPagerAdapter.resetData();
 	}
 
 	@Override
@@ -140,27 +155,29 @@ public class ImageViewerFragment extends Fragment implements LoaderManager.Loade
 		} else {			
 			// not really sure that it works okay and that these lines are necessary...
 			// This is done in order to save in bundle active image after screen rotation
-			if (data.size() > adapter.getData().size()) {
-				adapter.setData(data);
+			if (data.size() > m_viewPagerAdapter.getData().size()) {
+				m_viewPagerAdapter.setData(data, m_currentPageNumber);
 			}
 			
-			if (itemToShow != null) {
+			if (m_itemToShow != null) {
 				int index = 0;
-				List<ListItem> adapterData = adapter.getData();
+				List<ListItem> adapterData = m_viewPagerAdapter.getData();
 				for (; index < adapterData.size(); ++index) {
-					if (itemToShow.getEtag().equals(adapterData.get(index).getEtag()))
+					if (m_itemToShow.getEtag().equals(adapterData.get(index).getEtag()))
 						break;
 				}
 				if (index != adapterData.size()) {
-					pager.setCurrentItem(index);
-					itemToShow = null;
+					m_viewPager.setCurrentItem(index);
+					m_currentPageNumber = index;
+					m_viewPagerAdapter.cancelUnusedTasks(m_currentPageNumber);
+					m_itemToShow = null;
 				}
 			}
 		}
 	}
 
 	private void setEmptyText(String message) {
-		adapter.setText(message);
+		m_viewPagerAdapter.setText(message);
 	}
 
 	private void setDefaultEmptyText() {
