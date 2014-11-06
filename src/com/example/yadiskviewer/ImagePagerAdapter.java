@@ -1,8 +1,6 @@
 package com.example.yadiskviewer;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 
 import android.os.AsyncTask;
@@ -45,7 +43,7 @@ public class ImagePagerAdapter extends PagerAdapter {
 		this.m_credentials = credentials;
 		this.m_viewerFragment = fragment;
 		this.m_onlyText = false;
-		this.m_tasks = Collections.synchronizedList(new ArrayList<DownloadImageTask>());
+		this.m_tasks = new ArrayList<DownloadImageTask>();
 	}
 
 	public ImagePagerAdapter(String text, Credentials credentials, Fragment fragment) {
@@ -55,59 +53,32 @@ public class ImagePagerAdapter extends PagerAdapter {
 		this.m_credentials = credentials;
 		this.m_viewerFragment = fragment;
 		this.m_onlyText = true;
-		this.m_tasks = Collections.synchronizedList(new ArrayList<DownloadImageTask>());
+		this.m_tasks = new ArrayList<DownloadImageTask>();
 	}
 
-	private void cancelTasks(int exception) {
-		synchronized (m_tasks) {
-			updateTasks();
-			Iterator<DownloadImageTask> it = m_tasks.iterator();
-			DownloadImageTask task;
-			while (it.hasNext()) {
-				task = it.next();
-				if (task.getPageNumber() != exception) {
-					task.cancel(true);
-					it.remove();
-				}
-			}
-		}
+	private void removeTaskForPage(int pageNumber) {
+	    synchronized (m_tasks) {
+    	    DownloadImageTask theTask = null;
+    	    for (DownloadImageTask task : m_tasks) {
+    	        if (task.getPageNumber() == pageNumber) {
+    	            theTask = task;
+    	            break;
+    	        }
+    	    }
+    	    if (theTask != null) {
+    	        m_tasks.remove(theTask);
+    	        if (theTask.getStatus() != AsyncTask.Status.FINISHED) {
+    	            theTask.cancel(true);
+    	        }
+    	            
+    	    }
+	    }
 	}
-
-	private void cancelTasks() {
-		cancelTasks(-1);
-	}
-
-	private void updateTasks() {
-		synchronized (m_tasks) {
-			Iterator<DownloadImageTask> it = m_tasks.iterator();
-			DownloadImageTask task;
-			while (it.hasNext()) {
-				task = it.next();
-				if (task.getStatus() == AsyncTask.Status.FINISHED) {
-					it.remove();
-				}
-			}
-		}
-	}
-
-	public void cancelUnusedTasks(int currenrPage) {
-		synchronized (m_tasks) {
-			updateTasks();
-			Iterator<DownloadImageTask> it = m_tasks.iterator();
-			DownloadImageTask task;
-			while (it.hasNext()) {
-				task = it.next();
-				if (Math.abs(task.getPageNumber() - currenrPage) > 1) {
-					task.cancel(true);
-					it.remove();
-				}
-			}
-		}
-	}
-
+	
 	@Override
 	public void destroyItem(View collection, int position, Object view) {
 		((ViewPager) collection).removeView((View) view);
+		removeTaskForPage(position);
 	}
 
 	@Override
@@ -146,16 +117,15 @@ public class ImagePagerAdapter extends PagerAdapter {
 
 		DownloadImageTask task = new DownloadImageTask(m_data.get(position), m_viewerFragment.getActivity(),
 				m_credentials, imageView, layout, position);
-		m_tasks.add(task);
+		
+		synchronized (m_tasks) {
+		    m_tasks.add(task);
+		}
 		task.execute();
 
 		pager.addView(layout);
 
 		return layout;
-	}
-
-	public List<DownloadImageTask> getTasks() {
-		return m_tasks;
 	}
 
 	@Override
@@ -176,8 +146,7 @@ public class ImagePagerAdapter extends PagerAdapter {
 	public void startUpdate(View arg0) {
 	}
 
-	public void setData(List<ListItem> data, int currentPage) {
-		cancelUnusedTasks(currentPage);
+	public void setData(List<ListItem> data) {
 		this.m_data = data;
 		notifyDataSetChanged();
 	}
@@ -187,7 +156,6 @@ public class ImagePagerAdapter extends PagerAdapter {
 	}
 
 	public void resetData() {
-		cancelTasks();
 		m_data.clear();
 		m_onlyText = true;
 		notifyDataSetChanged();
@@ -197,19 +165,15 @@ public class ImagePagerAdapter extends PagerAdapter {
 		m_text = message;
 		resetData();
 	}
-	
-	/*
-	 * Run only for pages that are known to be instatiated
-	 */
+
 	public boolean isPageReady(int page) {
-		synchronized (m_tasks) {
-			updateTasks();
-			for (DownloadImageTask task : m_tasks) {
-				if (task.getPageNumber() == page && task.getStatus() != AsyncTask.Status.FINISHED) {
-					return false;
-				}
-			}
-			return true;
-		}
+	    synchronized (m_tasks) {
+	        for (DownloadImageTask task : m_tasks) {
+	            if (task.getPageNumber() == page) {
+	                return task.getStatus() == AsyncTask.Status.FINISHED;
+	            }
+	        }
+	        return false;    
+        }
 	}
 }

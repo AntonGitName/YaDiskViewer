@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.TimeUnit;
 
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -30,6 +29,7 @@ public class ImageViewerFragment extends Fragment implements LoaderManager.Loade
 	private static final String SLIDESHOW_FLAG = "SLIDESHOW_FLAG";
 	private static final String TAG = "ImageViewFragment";
 	private static final int CHANGE_SLIDE_TIME = 2000;
+	private static final int CHECK_PAGE_TIME = 100;
 
 	private ViewPager 				m_viewPager;
 	private ImagePagerAdapter 		m_viewPagerAdapter;
@@ -40,8 +40,7 @@ public class ImageViewerFragment extends Fragment implements LoaderManager.Loade
 	private ListItem 				m_itemToShow;
 	private int 					m_currentPageNumber;
 	private boolean 				m_slideshowFlag;
-	private boolean 				m_isAlive;
-	private Timer 					m_timer;
+	private NextSlideTask           m_nextSlideTask;
 	
 	@Override
 	public void onActivityCreated(Bundle savedInstanceState) {
@@ -60,7 +59,6 @@ public class ImageViewerFragment extends Fragment implements LoaderManager.Loade
 			@Override
 			public void onPageSelected(int arg0) {
 				m_currentPageNumber = arg0;
-				m_viewPagerAdapter.cancelUnusedTasks(m_currentPageNumber);
 			}
 
 			@Override
@@ -76,55 +74,46 @@ public class ImageViewerFragment extends Fragment implements LoaderManager.Loade
 		m_currentDir = args.getString(DiskViewerFragment.CURRENT_DIR_KEY);
 		m_itemToShow = args.getParcelable(DiskViewerFragment.FIRST_TO_SHOW_KEY);
 
-		if (m_itemToShow != null) {
-			m_startSlideshowMenuItem.setEnabled(false);
-		}
-
-		ArrayList<ListItem> adapterData;
 		if (savedInstanceState != null) {
-			adapterData = savedInstanceState.getParcelableArrayList(DiskViewerFragment.IMAGES_LIST_KEY);
 			m_itemToShow = savedInstanceState.getParcelable(ITEM_TO_SHOW);
 			m_slideshowFlag = savedInstanceState.getBoolean(SLIDESHOW_FLAG);
 		} else {
-			adapterData = new ArrayList<ListItem>();
 			m_currentPageNumber = 0;
-			m_slideshowFlag = true;
+			m_slideshowFlag = false;
 		}
 		
-		// Don't know how to fix bugs related to screen rotations + slide show
-		// So we just reset slide show after rotation
-		//m_slideshowFlag = true;
-		
-		m_viewPagerAdapter = new ImagePagerAdapter(adapterData, m_credentials, this);
+		m_viewPagerAdapter = new ImagePagerAdapter(new ArrayList<ListItem>(), m_credentials, this);
 		m_viewPager.setAdapter(m_viewPagerAdapter);
-
-		m_timer = new Timer();
-		m_isAlive = true;
 		
+		canceled = false;
+		if (m_slideshowFlag) {
+		    startSlideshow();
+		}
+
 		getActivity().getActionBar().setDisplayHomeAsUpEnabled(true);
 		
 		getLoaderManager().initLoader(0, null, this);
 	}
 
-	@Override
-	public void onResume() {
-		super.onResume();
-		if (!m_slideshowFlag) {
-			startSlideshow();
-		}
+	private void setSlideshowFlag(boolean flag) {
+	    m_slideshowFlag = flag;
+	    m_startSlideshowMenuItem.setEnabled(!m_slideshowFlag);
+	    m_pauseSlideshowMenuItem.setEnabled(m_slideshowFlag);
 	}
 	
 	@Override
 	public void onSaveInstanceState(Bundle outState) {
 		super.onSaveInstanceState(outState);
 		
-		m_timer.cancel();
-		m_isAlive = false;
+		canceled = true;
 		
-		outState.putParcelableArrayList(DiskViewerFragment.IMAGES_LIST_KEY,
-				(ArrayList<ListItem>) m_viewPagerAdapter.getData());
+		if (m_nextSlideTask != null) {
+            m_nextSlideTask.cancel(true);
+            m_nextSlideTask = null;
+        }
+		
 		outState.putParcelable(ITEM_TO_SHOW, m_itemToShow);
-		outState.putBoolean(SLIDESHOW_FLAG, m_startSlideshowMenuItem.isEnabled());
+		outState.putBoolean(SLIDESHOW_FLAG, m_slideshowFlag);
 	}
 
 	@Override
@@ -136,8 +125,7 @@ public class ImageViewerFragment extends Fragment implements LoaderManager.Loade
 		m_startSlideshowMenuItem = menu.findItem(R.id.action_start);
 		m_pauseSlideshowMenuItem = menu.findItem(R.id.action_pause);
 		
-		m_startSlideshowMenuItem.setEnabled(m_slideshowFlag);
-		m_pauseSlideshowMenuItem.setEnabled(!m_slideshowFlag);
+		setSlideshowFlag(m_slideshowFlag);
 	}
 
 	@Override
@@ -161,14 +149,17 @@ public class ImageViewerFragment extends Fragment implements LoaderManager.Loade
 			break;
 		case R.id.action_start:
 			Log.d(TAG, "Start slideshow");
-			m_startSlideshowMenuItem.setEnabled(false);
-			m_pauseSlideshowMenuItem.setEnabled(true);
+			setSlideshowFlag(true);
 			startSlideshow();
 			break;
 		case R.id.action_pause:
 			Log.d(TAG, "Pause slideshow");
-			m_startSlideshowMenuItem.setEnabled(true);
-			m_pauseSlideshowMenuItem.setEnabled(false);
+			canceled = true;
+			if (m_nextSlideTask != null) {
+			    m_nextSlideTask.cancel(true);
+			    m_nextSlideTask = null;
+			}
+			setSlideshowFlag(false);
 			break;
 		default:
 			return super.onOptionsItemSelected(item);
@@ -196,13 +187,8 @@ public class ImageViewerFragment extends Fragment implements LoaderManager.Loade
 				setDefaultEmptyText();
 			}
 		} else {
-			// not really sure that it works okay and that these lines are
-			// necessary...
-			// This is done in order to save in bundle active image after screen
-			// rotation
-			if (data.size() > m_viewPagerAdapter.getData().size()) {
-				m_viewPagerAdapter.setData(data, m_currentPageNumber);
-			}
+
+			m_viewPagerAdapter.setData(data);
 
 			if (m_itemToShow != null) {
 				int index = 0;
@@ -214,8 +200,6 @@ public class ImageViewerFragment extends Fragment implements LoaderManager.Loade
 				if (index != adapterData.size()) {
 					m_viewPager.setCurrentItem(index);
 					m_currentPageNumber = index;
-					// m_viewPagerAdapter.cancelUnusedTasks(m_currentPageNumber);
-					m_startSlideshowMenuItem.setEnabled(true);
 					m_itemToShow = null;
 				}
 			}
@@ -231,49 +215,75 @@ public class ImageViewerFragment extends Fragment implements LoaderManager.Loade
 	}
 
 	private void startSlideshow() {
-		
-		final Handler handler = new Handler();
-        m_timer.schedule(new TimerTask() {
-
-            @Override
-            public void run() {
-            	
-            	if (m_startSlideshowMenuItem.isEnabled() || !m_isAlive) {
-            		cancel();
-            		return;
-            	}
-            	
-                handler.post(new Runnable() {
-                	
-                    @Override
-                    public void run() {
-                    	new AsyncTask<Void, Void, Void>() {
-
-							@Override
-							protected Void doInBackground(Void... params) {
-								while (!m_viewPagerAdapter.isPageReady(m_currentPageNumber) && m_isAlive)
-		                    		;
-								return null;
-							}
-                    		
-							@Override
-							protected void onPostExecute(Void result) {
-								if (!m_isAlive) {
-		                    		return;
-		                    	}
-		                    	if (m_viewPagerAdapter.getCount() == 0) {
-									return;
-								}
-		                    	if (!m_startSlideshowMenuItem.isEnabled()) {
-									m_currentPageNumber = (m_currentPageNumber + 1) % m_viewPagerAdapter.getCount();
-									m_viewPager.setCurrentItem(m_currentPageNumber);
-		                    	}
-							}
-                    	}.execute();
-                    }
-                });
-            }
-        }, CHANGE_SLIDE_TIME, CHANGE_SLIDE_TIME);
+	    canceled = false;
+		m_nextSlideTask = new NextSlideTask();
+		m_nextSlideTask.execute();
 	}
+	private static int taskCount = 0;
+	private boolean canceled = false;
+	
+	private final class NextSlideTask extends AsyncTask<Void, Void, Void> {
+
+	    public NextSlideTask() {
+            super();
+            
+            this.taskNumber = ++taskCount;
+            Log.d(TAG, "Task created (" + taskNumber + ")");
+        }
+
+        private static final String TAG = "NextSlideTask";
+	    private final int taskNumber;
+	    
+        @Override
+        protected Void doInBackground(Void... params) {
+            Timer timer = new Timer();
+            timer.schedule(new TimerTask() {
+                
+                @Override
+                public void run() {
+                    if (!m_viewPagerAdapter.isPageReady(m_currentPageNumber) && !canceled && !isCancelled() && m_slideshowFlag) {
+                        cancel();
+                    }
+                    
+                }
+            }, 0, CHECK_PAGE_TIME);
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void result) {
+            super.onPostExecute(result);
+            Log.d(TAG, "Task finished (" + taskNumber + ")");
+            final Handler handler = new Handler();
+            handler.postDelayed(new Runnable() {
+                
+                @Override
+                public void run() {
+                    if (m_slideshowFlag && !canceled) {
+                        m_currentPageNumber = (m_currentPageNumber + 1) % m_viewPagerAdapter.getCount();
+                        m_viewPager.setCurrentItem(m_currentPageNumber);
+                        m_nextSlideTask = new NextSlideTask();
+                        m_nextSlideTask.execute();
+                    }
+                }
+            }, CHANGE_SLIDE_TIME);
+        }
+
+        @Override
+        protected void onCancelled() {
+            super.onCancelled();
+            Log.d(TAG, "Task canceled (" + taskNumber + ")");
+        }
+	    
+	}
+	
+    @Override
+    public void onStop() {
+        super.onStop();
+        if (m_nextSlideTask != null) {
+            m_nextSlideTask.cancel(true);
+            m_nextSlideTask = null;
+        }
+    }
 
 }
