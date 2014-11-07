@@ -5,9 +5,11 @@ import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
+import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.Loader;
@@ -41,7 +43,10 @@ public class ImageViewerFragment extends Fragment implements LoaderManager.Loade
 	private int 					m_currentPageNumber;
 	private boolean 				m_slideshowFlag;
 	private NextSlideTask           m_nextSlideTask;
+    private boolean                 m_nextSlideTaskCanceledFlag;
 	
+    private static int m_debugTaskCount = 0;
+    
 	@Override
 	public void onActivityCreated(Bundle savedInstanceState) {
 		super.onActivityCreated(savedInstanceState);
@@ -50,10 +55,7 @@ public class ImageViewerFragment extends Fragment implements LoaderManager.Loade
 
 		registerForContextMenu(getView());
 
-		Bundle args = getArguments();
-
 		m_viewPager = (ViewPager) getActivity().findViewById(R.id.view_pager);
-
 		m_viewPager.setOnPageChangeListener(new ViewPager.OnPageChangeListener() {
 
 			@Override
@@ -70,22 +72,33 @@ public class ImageViewerFragment extends Fragment implements LoaderManager.Loade
 			}
 		});
 
-		m_credentials = args.getParcelable(DiskViewerFragment.CREDENTIALS_KEY);
-		m_currentDir = args.getString(DiskViewerFragment.CURRENT_DIR_KEY);
-		m_itemToShow = args.getParcelable(DiskViewerFragment.FIRST_TO_SHOW_KEY);
+		Bundle args = getArguments();
+		if (args != null) {
+    		m_credentials = args.getParcelable(DiskViewerFragment.CREDENTIALS_KEY);
+    		m_currentDir = args.getString(DiskViewerFragment.CURRENT_DIR_KEY);
+    		m_itemToShow = args.getParcelable(DiskViewerFragment.FIRST_TO_SHOW_KEY);
+		} else {
+		    SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
+	        String username = preferences.getString(MainActivity.USERNAME, null);
+	        String token = preferences.getString(MainActivity.TOKEN, null);
 
+	        m_credentials = new Credentials(username, token);
+	        m_currentDir = DiskViewerFragment.ROOT;
+	        m_itemToShow = null;
+		}
+		
 		if (savedInstanceState != null) {
 			m_itemToShow = savedInstanceState.getParcelable(ITEM_TO_SHOW);
 			m_slideshowFlag = savedInstanceState.getBoolean(SLIDESHOW_FLAG);
 		} else {
-			m_currentPageNumber = 0;
 			m_slideshowFlag = false;
 		}
 		
 		m_viewPagerAdapter = new ImagePagerAdapter(new ArrayList<ListItem>(), m_credentials, this);
 		m_viewPager.setAdapter(m_viewPagerAdapter);
+		m_currentPageNumber = 0;
 		
-		canceled = false;
+		m_nextSlideTaskCanceledFlag = false;
 		if (m_slideshowFlag) {
 		    startSlideshow();
 		}
@@ -105,15 +118,19 @@ public class ImageViewerFragment extends Fragment implements LoaderManager.Loade
 	public void onSaveInstanceState(Bundle outState) {
 		super.onSaveInstanceState(outState);
 		
-		canceled = true;
-		
 		if (m_nextSlideTask != null) {
             m_nextSlideTask.cancel(true);
             m_nextSlideTask = null;
         }
-		
+		if (m_itemToShow == null) {
+            m_itemToShow = m_viewPagerAdapter.getData().get(m_currentPageNumber);
+		}
 		outState.putParcelable(ITEM_TO_SHOW, m_itemToShow);
 		outState.putBoolean(SLIDESHOW_FLAG, m_slideshowFlag);
+		
+		m_nextSlideTaskCanceledFlag = true;
+        m_viewPager = null;
+        m_viewPagerAdapter = null;
 	}
 
 	@Override
@@ -154,7 +171,7 @@ public class ImageViewerFragment extends Fragment implements LoaderManager.Loade
 			break;
 		case R.id.action_pause:
 			Log.d(TAG, "Pause slideshow");
-			canceled = true;
+			m_nextSlideTaskCanceledFlag = true;
 			if (m_nextSlideTask != null) {
 			    m_nextSlideTask.cancel(true);
 			    m_nextSlideTask = null;
@@ -174,12 +191,21 @@ public class ImageViewerFragment extends Fragment implements LoaderManager.Loade
 
 	@Override
 	public void onLoaderReset(Loader<List<ListItem>> loader) {
-		m_viewPagerAdapter.resetData();
+	    if (m_viewPagerAdapter != null) {
+	        m_viewPagerAdapter.resetData();
+	    }
 	}
 
 	@Override
 	public void onLoadFinished(final Loader<List<ListItem>> loader, List<ListItem> data) {
-		if (data.isEmpty()) {
+        
+	    // pretty sure that this condition will never be true, but who knows...
+        if (data == null) {
+            setDefaultEmptyText();
+            return;
+        }
+	    
+	    if (data.isEmpty()) {
 			Exception ex = ((ImageViewerLoader) loader).getException();
 			if (ex != null) {
 				setEmptyText(((ImageViewerLoader) loader).getException().getMessage());
@@ -194,12 +220,12 @@ public class ImageViewerFragment extends Fragment implements LoaderManager.Loade
 				int index = 0;
 				List<ListItem> adapterData = m_viewPagerAdapter.getData();
 				for (; index < adapterData.size(); ++index) {
-					if (m_itemToShow.getEtag().equals(adapterData.get(index).getEtag()))
+					if (m_itemToShow.getEtag().equals(adapterData.get(index).getEtag())) {
 						break;
+					}
 				}
 				if (index != adapterData.size()) {
 					m_viewPager.setCurrentItem(index);
-					m_currentPageNumber = index;
 					m_itemToShow = null;
 				}
 			}
@@ -215,24 +241,22 @@ public class ImageViewerFragment extends Fragment implements LoaderManager.Loade
 	}
 
 	private void startSlideshow() {
-	    canceled = false;
+	    m_nextSlideTaskCanceledFlag = false;
 		m_nextSlideTask = new NextSlideTask();
 		m_nextSlideTask.execute();
 	}
-	private static int taskCount = 0;
-	private boolean canceled = false;
 	
 	private final class NextSlideTask extends AsyncTask<Void, Void, Void> {
 
+	    private static final String TAG = "NextSlideTask";
+        private final int taskNumber;
+	    
 	    public NextSlideTask() {
             super();
             
-            this.taskNumber = ++taskCount;
+            this.taskNumber = ++m_debugTaskCount;
             Log.d(TAG, "Task created (" + taskNumber + ")");
         }
-
-        private static final String TAG = "NextSlideTask";
-	    private final int taskNumber;
 	    
         @Override
         protected Void doInBackground(Void... params) {
@@ -241,10 +265,9 @@ public class ImageViewerFragment extends Fragment implements LoaderManager.Loade
                 
                 @Override
                 public void run() {
-                    if (!m_viewPagerAdapter.isPageReady(m_currentPageNumber) && !canceled && !isCancelled() && m_slideshowFlag) {
+                    if (!m_nextSlideTaskCanceledFlag && !isCancelled() && !m_viewPagerAdapter.isPageReady(m_currentPageNumber) && m_slideshowFlag) {
                         cancel();
                     }
-                    
                 }
             }, 0, CHECK_PAGE_TIME);
             return null;
@@ -259,7 +282,7 @@ public class ImageViewerFragment extends Fragment implements LoaderManager.Loade
                 
                 @Override
                 public void run() {
-                    if (m_slideshowFlag && !canceled) {
+                    if (m_slideshowFlag && !m_nextSlideTaskCanceledFlag) {
                         m_currentPageNumber = (m_currentPageNumber + 1) % m_viewPagerAdapter.getCount();
                         m_viewPager.setCurrentItem(m_currentPageNumber);
                         m_nextSlideTask = new NextSlideTask();

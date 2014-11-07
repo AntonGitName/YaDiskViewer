@@ -30,7 +30,7 @@ public class DiskViewerFragment extends ListFragment implements LoaderManager.Lo
 	public static final String FIRST_TO_SHOW_KEY = "yadiskviewer.first.to.show";
 	public static final String CURRENT_DIR_KEY = "yadiskviewer.current.dir";
 
-	private static final String ROOT = "/";
+	public static final String ROOT = "/";
 
 	private static final String TAG = "DiskViewerFragment";
 
@@ -164,7 +164,18 @@ public class DiskViewerFragment extends ListFragment implements LoaderManager.Lo
 		} else {
 			setListShownNoAnimation(true);
 		}
+		
+		// pretty sure that this condition will never be true, but who knows...
+		if (data == null) {
+		    setDefaultEmptyText();
+		    return;
+		}
+		
 		if (data.isEmpty()) {
+		    if (loader == null) {
+		        setEmptyText("Fatal error: loader was not created.");
+		        return;
+		    }
 			Exception ex = ((DiskViewerLoader) loader).getException();
 			if (ex != null) {
 				setEmptyText(((DiskViewerLoader) loader).getException().getMessage());

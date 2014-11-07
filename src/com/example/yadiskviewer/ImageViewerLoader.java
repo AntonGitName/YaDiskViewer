@@ -24,7 +24,7 @@ public class ImageViewerLoader extends AsyncTaskLoader<List<ListItem>> {
 	public static final String IMAGE_TYPE = "image";
 
 	private static Collator collator = Collator.getInstance();
-	private static final int ITEMS_PER_REQUEST = 20;
+	private static final int ITEMS_PER_REQUEST = 40;
 	private static final String TAG = "ImageViewerLoader";
 
 	static {
@@ -39,6 +39,7 @@ public class ImageViewerLoader extends AsyncTaskLoader<List<ListItem>> {
 	private Handler 			m_handler;
 	private boolean		 		m_hasCancelled;
 
+	// this code possibly contains an error
 	private final Comparator<ListItem> FILE_ITEM_COMPARATOR = new Comparator<ListItem>() {
 		@Override
 		public int compare(ListItem f1, ListItem f2) {
@@ -74,13 +75,13 @@ public class ImageViewerLoader extends AsyncTaskLoader<List<ListItem>> {
 				public boolean handleItem(ListItem item) {
 					if (ignoreFirstItem) {
 						ignoreFirstItem = false;
-						return false;
 					} else {
 						if (!item.isCollection() && item.getMediaType().equals(IMAGE_TYPE)) {
 							m_imageItemList.add(item);
+							return true;
 						}
-						return true;
 					}
+					return false;
 				}
 
 				@Override

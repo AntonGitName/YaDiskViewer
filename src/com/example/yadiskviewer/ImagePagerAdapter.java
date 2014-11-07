@@ -96,21 +96,23 @@ public class ImagePagerAdapter extends PagerAdapter {
 
 		ViewPager pager = (ViewPager) collection;
 
+		// we have to create layout for every page
+        LinearLayout layout = new LinearLayout(m_viewerFragment.getActivity());
+        layout.setGravity(Gravity.CENTER);
+        layout.setLayoutParams(VIEW_LAYOUT_PARAMS);
+		
 		// nothing to show
 		if (m_onlyText) {
 			// create view only once
 			if (m_emptyListText == null) {
 				m_emptyListText = new TextView(m_viewerFragment.getActivity());
 				m_emptyListText.setText(m_text);
-				pager.addView(m_emptyListText);
+				m_emptyListText.setGravity(Gravity.CENTER);
 			}
-			return m_emptyListText;
+			layout.addView(m_emptyListText, VIEW_LAYOUT_PARAMS);
+			pager.addView(layout);
+			return layout;
 		}
-
-		// we have to create layout for every page
-		LinearLayout layout = new LinearLayout(m_viewerFragment.getActivity());
-		layout.setGravity(Gravity.CENTER);
-		layout.setLayoutParams(VIEW_LAYOUT_PARAMS);
 
 		ImageView imageView = new ImageView(m_viewerFragment.getActivity());
 		imageView.setContentDescription(m_data.get(position).getDisplayName());
@@ -147,7 +149,8 @@ public class ImagePagerAdapter extends PagerAdapter {
 	}
 
 	public void setData(List<ListItem> data) {
-		this.m_data = data;
+		m_data.clear();
+	    m_data.addAll(data);
 		notifyDataSetChanged();
 	}
 
